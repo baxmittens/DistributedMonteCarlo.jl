@@ -79,7 +79,6 @@ function restart!(MC::MonteCarlo{DIM,MCT,RT}, restartfunc::F, restartpathes, wor
 	end
 end
 
-
 function continue!(MC::MonteCarlo{DIM,MCT,RT},n::Int,worker_ids::Vector{Int}) where {DIM,MCT,RT}
 	i = 0
 	while i<=n
