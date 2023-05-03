@@ -1,36 +1,51 @@
 module DistributedMonteCarlo
 
 using StaticArrays
+using Distributed
 
-mutable struct MonteCarloShot{DIM,MCT,RT}
+struct MonteCarloShot{DIM,MCT}
 	coords::SVector{DIM,MCT}
-	val::RT
-	MonteCarloShot(::Type{SVector{DIM,MCT}},::Type{RT}) where {DIM,MCT,RT} = new{DIM,MCT,RT}() #incomplete constructor
-	MonteCarloShot(coords::SVector{DIM,MCT},::Type{RT}) where {DIM,MCT,RT} = new{DIM,MCT,RT}(coords) #incomplete constructor
-	MonteCarloShot(coords::SVector{DIM,MCT},val::RT) where {DIM,MCT,RT} = new{DIM,MCT,RT}(coords,val)
+	MonteCarloShot(coords::SVector{DIM,MCT}) where {DIM,MCT} = new{DIM,MCT}(coords)
 end
-set_coords!(mcs::MonteCarloShot{DIM,MCT,RT}, coords::SVector{DIM,MCT}) where {DIM,MCT,RT} = mcs.coords=coords
-set_val!(mcs::MonteCarloShot{DIM,MCT,RT}, val::RT) where {DIM,MCT,RT} = mcs.val=val
 
-mutable struct MonteCarlo{DIM,MCT,RT}
-	shots::Vector{MonteCarloShot{DIM,MCT,RT}}
+struct MonteCarlo{DIM,MCT,RT}
+	shots::Vector{MonteCarloShot{DIM,MCT}}
 	n::Int
 	tol::Float64
 	Fun::Function
-	rndF::Function #randf() -> SVector{DIM,MCT} 
+	rndF::Function
 	function MonteCarlo(::Val{DIM},::Type{MCT},::Type{RT}, n, tol, Fun::F1, rndF::F2) where {DIM,MCT,RT,F1<:Function,F2<:Function}
-		new{DIM,MCT,RT}(Vector{MonteCarloShot{DIM,MCT,RT}}(undef,n),n,tol,Fun,rndF)
+		MC = new{DIM,MCT,RT}(Vector{MonteCarloShot{DIM,MCT}}(undef,n),n,tol,Fun,rndF)
+		for i = 1:MC.n
+			#@info "$i/$(MC.n) Monte Carlo Shot"	
+			ξs = MC.rndF()
+			MC.shots[i] = MonteCarloShot(ξs,res)
+		end
+		return MC
 	end
 end
 
-function start!(MC::MonteCarlo)
-	for i = 1:MC.n
-		@info "$i/$(MC.n) Monte Carlo Shot"	
-		ξs = MC.rndF()
-		res = MC.Fun(ξs)
-		MC.shots[i] = MonteCarloShot(ξs,res)
+function distributed_fvals!(MC::MonteCarlo{DIM,MCT,RT}, cpts::AbstractVector{HCP}, fun::F, worker_ids::Vector{Int}) where {N, HCP<:AbstractHierarchicalCollocationPoint{N}, SG<:AbstractHierarchicalSparseGrid{N,HCP}, F<:Function}
+	nvals = length(cpts)
+	@info "Starting $nvals simulatoin calls"
+	wp = WorkerPool(worker_ids);
+	@sync begin
+		@showprogress for hcpt in cpts
+			while !isready(wp)
+				sleep(0.001)
+			end
+			@async begin
+				ID = idstring(hcpt)
+				val = coords(hcpt)
+				_fval = remotecall_fetch(fun, wp, val, ID)
+				set_fval!(hcpt,_fval)
+			end
+		end
 	end
+	return nothing
 end
+
+
 
 function start!(MC::MonteCarlo{DIM,MCT,RT}, worker_ids::Vector{Int}) where {DIM,MCT,RT}
 	i = 0
