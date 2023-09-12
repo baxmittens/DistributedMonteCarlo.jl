@@ -1,4 +1,4 @@
-#module DistributedMonteCarlo
+module DistributedMonteCarlo
 
 using StaticArrays
 using Distributed
@@ -90,6 +90,7 @@ function distributed_𝔼(MC::MonteCarlo{DIM,MCT,RT}, fun::F, worker_ids::Vector
 	return take!(intres)
 end
 
+end #module
 
 #addprocs(80)
 #
