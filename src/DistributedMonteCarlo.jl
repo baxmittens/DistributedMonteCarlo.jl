@@ -91,18 +91,18 @@ function distributed_𝔼(MC::MonteCarlo{DIM,MCT,RT}, fun::F, worker_ids::Vector
 end
 
 
-addprocs(80)
-
-@everywhere samplefun = x->begin; sleep(0.1); ones(Float64,20_000,20_000); end
-@everywhere begin
-	using StaticArrays
-end
-
-MC = MonteCarlo(Val(20),Float64,Matrix{Float64}, 10_000, 0.01, ()->randn(20))
-@time 𝔼 = distributed_𝔼(MC, samplefun, workers()) 
-
-MC = MonteCarlo(Val(20),Float64,Matrix{Float64}, 20_000, 0.01, ()->randn(20))
-@time 𝔼 = distributed_𝔼(MC, samplefun, workers()) 
+#addprocs(80)
+#
+#@everywhere samplefun = x->begin; sleep(0.1); ones(Float64,20_000,20_000); end
+#@everywhere begin
+#	using StaticArrays
+#end
+#
+#MC = MonteCarlo(Val(20),Float64,Matrix{Float64}, 10_000, 0.01, ()->randn(20))
+#@time 𝔼 = distributed_𝔼(MC, samplefun, workers()) 
+#
+#MC = MonteCarlo(Val(20),Float64,Matrix{Float64}, 20_000, 0.01, ()->randn(20))
+#@time 𝔼 = distributed_𝔼(MC, samplefun, workers()) 
 
 #function start!(MC::MonteCarlo{DIM,MCT,RT}, worker_ids::Vector{Int}) where {DIM,MCT,RT}
 #	i = 0
