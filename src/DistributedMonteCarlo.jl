@@ -76,7 +76,7 @@ function distributed_𝔼(MC::MonteCarlo{DIM,MCT,RT}, fun::F, worker_ids::Vector
 			@async begin
 				val = coords(shot)
 				println(val)
-				_fval = remotecall_fetch(fun, wp, val)				
+				_fval = remotecall_fetch(fun, wp, val, hash(val))				
 				println("put")
 				put!(results, _fval)
 			end
