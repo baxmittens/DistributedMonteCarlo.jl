@@ -3,6 +3,7 @@ module DistributedMonteCarlo
 using StaticArrays
 using Distributed
 import AltInplaceOpsInterface: add!, minus!, pow!, max!, min!
+using LinearAlgebra
 
 struct MonteCarloShot{DIM,MCT}
 	coords::SVector{DIM,MCT}
@@ -10,7 +11,7 @@ struct MonteCarloShot{DIM,MCT}
 end
 coords(mcs::MonteCarloShot) = mcs.coords
 
-struct MonteCarlo{DIM,MCT,RT}
+mutable struct MonteCarlo{DIM,MCT,RT}
 	shots::Vector{MonteCarloShot{DIM,MCT}}
 	n::Int
 	tol::Float64
@@ -28,24 +29,43 @@ struct MonteCarlo{DIM,MCT,RT}
 	end
 end
 
+#function load!(MC::MonteCarlo{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
+#	snapshotdirs = readdir(restartpath)
+#	MC.n = length(snapshotdirs)
+#	for i = 1:MC.n
+#
+#		MC.shots[i] = MonteCarloShot(ξs)
+#	end
+#
+#	while i<=n
+#		@sync begin
+#			for pid in worker_ids
+#				i += 1
+#				if i > n
+#					break
+#				end
+#				@info "$i/$(n) Monte Carlo Shot"
+#				mcs = MonteCarloShot(SVector{DIM,MCT},RT)
+#				MC.shots[i] = mcs
+#				path = restartpathes[i]				
+#				@async begin
+#				    coords,fval = remotecall_fetch(restartfunc, pid, path)
+#					set_coords!(mcs,coords)
+#					set_val!(mcs,fval)
+#				end
+#			end
+#		end
+#	end
+#end
 
 function distributed_𝔼(MC::MonteCarlo{DIM,MCT,RT}, fun::F, worker_ids::Vector{Int}) where {DIM,MCT,RT,F<:Function}
 	
 	sumthreadlock = Threads.Condition()
 	wp = WorkerPool(worker_ids);
 	num_workers = length(worker_ids)
-	#results = RemoteChannel(()->Channel{RT}(length(worker_ids)+1));
-	#intres = RemoteChannel(()->Channel{RT}(1));
 	results = Channel{RT}(num_workers+1)
 	intres = Channel{RT}(1)
 	nresults = 0
-
-	#@everywhere begin
-	#	function do_job(fun,val,res)
-	#		put!(res, fun(val))
-	#		return 1
-	#	end
-	#end
 
 	println("1")
 	@async begin
@@ -63,14 +83,73 @@ function distributed_𝔼(MC::MonteCarlo{DIM,MCT,RT}, fun::F, worker_ids::Vector
 		println("done channel")
 	end
 
-	println("2")
+	@sync begin
+		for shot in MC.shots
+			i = 0
+			while !isready(wp)
+				sleep(0.001)
+			end
+			i += 1
+			@async begin
+				val = coords(shot)
+				println(val)
+				_fval = remotecall_fetch(fun, wp, val, string(hash(val)))
+				println("put")
+				put!(results, _fval)
+			end
+			if i >= num_workers
+				sleep(0.001)
+				i = 0
+			end
+		end
+	end
+	println("3")
+	return take!(intres)
+end
+
+#function var(MC::MonteCarlo)
+#	_𝔼 = 𝔼(MC)
+#	var = zero(_𝔼)
+#	for i = 1:MC.n
+#		var += (MC.shots[i].val - _𝔼) ^ 2.0
+#	end
+#	var /= (MC.n-1)
+#	return var
+#end
+
+function distributed_var(MC::MonteCarlo{DIM,MCT,RT}, fun::F, exp_val::RT, worker_ids::Vector{Int}) where {DIM,MCT,RT,F<:Function}
+	
+	sumthreadlock = Threads.Condition()
+	wp = WorkerPool(worker_ids);
+	num_workers = length(worker_ids)
+	results = Channel{RT}(num_workers+1)
+	intres = Channel{RT}(1)
+	nresults = 0
+
+	println("1")
+	@async begin
+		res = take!(results)
+		println("first result")
+		nresults += 1
+		while nresults < MC.n
+			_res = take!(results)
+			nresults += 1
+			add!(res,(_res - exp_val)^2.0)
+			#println("result $nresults")
+			if mod(nresults,1000) == 0
+				println("n = $nresults")
+			end
+			sleep(0.001)		
+		end
+		put!(intres, res/(nresults-1))
+		println("done channel")
+	end
 
 	@sync begin
 		for shot in MC.shots
 			i = 0
 			while !isready(wp)
 				sleep(0.001)
-				#println("sleep")
 			end
 			i += 1
 			@async begin
@@ -127,32 +206,6 @@ end #module
 #	end
 #end
 #
-#function restart!(MC::MonteCarlo{DIM,MCT,RT}, restartfunc::F, restartpathes, worker_ids::Vector{Int}) where {DIM,MCT,RT,F<:Function}
-#	i = 0
-#	n = length(restartpathes)
-#	if length(MC.n) != n
-#		resize!(MC.shots,n)
-#	end
-#	while i<=n
-#		@sync begin
-#			for pid in worker_ids
-#				i += 1
-#				if i > n
-#					break
-#				end
-#				@info "$i/$(n) Monte Carlo Shot"
-#				mcs = MonteCarloShot(SVector{DIM,MCT},RT)
-#				MC.shots[i] = mcs
-#				path = restartpathes[i]				
-#				@async begin
-#				    coords,fval = remotecall_fetch(restartfunc, pid, path)
-#					set_coords!(mcs,coords)
-#					set_val!(mcs,fval)
-#				end
-#			end
-#		end
-#	end
-#end
 #
 #function continue!(MC::MonteCarlo{DIM,MCT,RT},n::Int,worker_ids::Vector{Int}) where {DIM,MCT,RT}
 #	i = 0
