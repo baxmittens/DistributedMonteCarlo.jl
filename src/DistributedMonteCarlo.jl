@@ -34,7 +34,7 @@ function load!(MC::MonteCarlo{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
 		@warn "change size of n from $(MC.n) to $n"
 		MC.n = n
 	end
-	for i = 1:MC.n
+	for i = 1:n
 		snapshotdir = readdir(joinpath(restartpath,snapshotdirs[i]))
 		pars_txt = joinpath(restartpath,snapshotdirs[i],"coords.txt")
 		if isfile(pars_txt)
