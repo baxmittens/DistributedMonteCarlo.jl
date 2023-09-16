@@ -29,34 +29,25 @@ mutable struct MonteCarlo{DIM,MCT,RT}
 	end
 end
 
-#function load!(MC::MonteCarlo{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
-#	snapshotdirs = readdir(restartpath)
-#	MC.n = length(snapshotdirs)
-#	for i = 1:MC.n
-#
-#		MC.shots[i] = MonteCarloShot(ξs)
-#	end
-#
-#	while i<=n
-#		@sync begin
-#			for pid in worker_ids
-#				i += 1
-#				if i > n
-#					break
-#				end
-#				@info "$i/$(n) Monte Carlo Shot"
-#				mcs = MonteCarloShot(SVector{DIM,MCT},RT)
-#				MC.shots[i] = mcs
-#				path = restartpathes[i]				
-#				@async begin
-#				    coords,fval = remotecall_fetch(restartfunc, pid, path)
-#					set_coords!(mcs,coords)
-#					set_val!(mcs,fval)
-#				end
-#			end
-#		end
-#	end
-#end
+function load!(MC::MonteCarlo{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
+	snapshotdirs = readdir(restartpath)
+	MC.n = length(snapshotdirs)
+	for i = 1:MC.n
+		snapshotdir = readdir(joinpath(restartpath,snapshotdirs[i]))
+		pars_txt = joinpath(restartpath,snapshotdirs[i],"coords.txt")
+		f = open(pars_txt);
+		lines = readlines(f)
+		close(f)
+		coords = SVector(map(x->parse(Float64,x),lines)...)
+		@assert snapshotdirs[i]==string(hash(coords))
+		println("result found @$coords")
+		println()
+		println("old coords = ", MC.shots[i].coords)
+		println("loaded coords = ", coords)
+		MC.shots[i] = MonteCarloShot(coords)
+	end
+	return nothing
+end
 
 function distributed_𝔼(MC::MonteCarlo{DIM,MCT,RT}, fun::F, worker_ids::Vector{Int}) where {DIM,MCT,RT,F<:Function}
 	
