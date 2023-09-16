@@ -31,7 +31,11 @@ end
 
 function load!(MC::MonteCarlo{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
 	snapshotdirs = readdir(restartpath)
-	MC.n = length(snapshotdirs)
+	n = length(snapshotdirs)
+	if n > MC.n
+		@warn "change size of n from $(MC.n) to $n"
+		MC.n = n
+	end
 	for i = 1:MC.n
 		snapshotdir = readdir(joinpath(restartpath,snapshotdirs[i]))
 		pars_txt = joinpath(restartpath,snapshotdirs[i],"coords.txt")
@@ -40,10 +44,10 @@ function load!(MC::MonteCarlo{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
 		close(f)
 		coords = SVector(map(x->parse(Float64,x),lines)...)
 		@assert snapshotdirs[i]==string(hash(coords))
-		println("result found @$coords")
-		println()
-		println("old coords = ", MC.shots[i].coords)
-		println("loaded coords = ", coords)
+		#println("result found @$coords")
+		#println()
+		#println("old coords = ", MC.shots[i].coords)
+		#println("loaded coords = ", coords)
 		MC.shots[i] = MonteCarloShot(coords)
 	end
 	return nothing
