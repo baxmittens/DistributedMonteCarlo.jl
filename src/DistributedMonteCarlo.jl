@@ -113,6 +113,8 @@ function distributed_var(MC::MonteCarlo{DIM,MCT,RT}, fun::F, exp_val::RT, worker
 	intres = Channel{RT}(1)
 	nresults = 0
 
+	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), floor(Int,MC.n/100)
+
 	@async begin
 		res = take!(results)
 		nresults += 1
@@ -123,8 +125,14 @@ function distributed_var(MC::MonteCarlo{DIM,MCT,RT}, fun::F, exp_val::RT, worker
 			if mod(nresults,1000) == 0
 				println("n = $nresults")
 			end
+			if mod(nresults, conv_interv) == 0
+				push!(conv_n, nresults)
+				push!(conv_norm, norm(res/nresults))
+			end
 			sleep(0.001)		
 		end
+		push!(conv_n, nresults)
+		push!(conv_norm, norm(res/nresults))
 		put!(intres, res/(nresults-1))
 	end
 
@@ -148,6 +156,7 @@ function distributed_var(MC::MonteCarlo{DIM,MCT,RT}, fun::F, exp_val::RT, worker
 		end
 	end
 
+	MC.convergence_history["var_val"] = (conv_n, conv_norm)
 	return take!(intres)
 end
 
