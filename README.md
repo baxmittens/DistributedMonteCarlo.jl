@@ -1,9 +1,9 @@
 # DistributedMonteCarlo
 A Monte Carlo implementation in the julia language using [Distributed.jl](https://docs.julialang.org/en/v1/stdlib/Distributed/) and [AltInplaceOpsInterface.jl](https://github.com/baxmittens/AltInplaceOpsInterface.jl)
 
-This code is rather slow. Its purpose is to be able to perform Monte Carlo analyses that, at one time, would not fit in main memory or where the snapshots need to be computed on distributed infrastructes. 
+This code is rather slow. Its purpose is to be able to perform Monte Carlo analyses that, at one time, would not fit in main memory or where the snapshots need to be computed on distributed infrastructures. 
 
-[AltInplaceOpsInterface.jl](https://github.com/baxmittens/AltInplaceOpsInterface.jl) provides in-place operation for the Monte Carlo return type and is used due to compatibility to old julia code and could be replaced by implementing the proper [interface functions]([AltInplaceOpsInterface.jl](https://github.com/baxmittens/AltInplaceOpsInterface.jl)). Any return type used with this package need to implement these interface functions.
+[AltInplaceOpsInterface.jl](https://github.com/baxmittens/AltInplaceOpsInterface.jl) provides in-place operation for the Monte Carlo return type and is used due to compatibility to old julia code and could be replaced by implementing the proper [interface functions](https://docs.julialang.org/en/v1/manual/interfaces/). Any return type used with this package need to implement the AltInplaceOpsInterface.
 
 
 ## Install
