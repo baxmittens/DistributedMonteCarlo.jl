@@ -12,3 +12,5 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [compat]
 julia = "1"
+StaticArrays = "1"
+AltInplaceOpsInterface = "0"
