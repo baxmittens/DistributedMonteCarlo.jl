@@ -74,7 +74,7 @@ function distributed_𝔼(MC::MonteCarlo{DIM,MCT,RT}, fun::F, worker_ids::Vector
 				push!(conv_n, nresults)
 				push!(conv_norm, norm(res/nresults))
 			end
-			sleep(0.001)		
+			sleep(0.0001)		
 		end
 		push!(conv_n, nresults)
 		push!(conv_norm, norm(res/nresults))
@@ -85,7 +85,7 @@ function distributed_𝔼(MC::MonteCarlo{DIM,MCT,RT}, fun::F, worker_ids::Vector
 		for shot in MC.shots
 			i = 0
 			while !isready(wp)
-				sleep(0.001)
+				sleep(0.0001)
 			end
 			i += 1
 			@async begin
@@ -95,7 +95,7 @@ function distributed_𝔼(MC::MonteCarlo{DIM,MCT,RT}, fun::F, worker_ids::Vector
 				put!(results, _fval)
 			end
 			if i >= num_workers
-				sleep(0.001)
+				sleep(0.0001)
 				i = 0
 			end
 		end
@@ -129,7 +129,7 @@ function distributed_var(MC::MonteCarlo{DIM,MCT,RT}, fun::F, exp_val::RT, worker
 				push!(conv_n, nresults)
 				push!(conv_norm, norm(res/nresults))
 			end
-			sleep(0.001)		
+			sleep(0.0001)		
 		end
 		push!(conv_n, nresults)
 		push!(conv_norm, norm(res/nresults))
@@ -140,7 +140,7 @@ function distributed_var(MC::MonteCarlo{DIM,MCT,RT}, fun::F, exp_val::RT, worker
 		for shot in MC.shots
 			i = 0
 			while !isready(wp)
-				sleep(0.001)
+				sleep(0.0001)
 			end
 			i += 1
 			@async begin
@@ -150,7 +150,7 @@ function distributed_var(MC::MonteCarlo{DIM,MCT,RT}, fun::F, exp_val::RT, worker
 				put!(results, _fval)
 			end
 			if i >= num_workers
-				sleep(0.001)
+				sleep(0.0001)
 				i = 0
 			end
 		end
@@ -159,5 +159,7 @@ function distributed_var(MC::MonteCarlo{DIM,MCT,RT}, fun::F, exp_val::RT, worker
 	MC.convergence_history["var_val"] = (conv_n, conv_norm)
 	return take!(intres)
 end
+
+export MonteCarlo, MonteCarloShot, load!, distributed_𝔼, distributed_var
 
 end #module
