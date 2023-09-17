@@ -30,8 +30,8 @@ mc = MonteCarlo(dim, snapshot_type, return_type, n_snapshots, tol, rndF)
 addprocs(1) # you need to add at least one worker
 worker_ids = workers()
 @everywhere begin
-	using StaticArrays
-	sample_func(x, ID::String) = begin; println(x); return x*x'; end
+	using StaticArrays # StaticArrays has to be imported since x is a SVector
+	sample_func(x, ID::String) = x*x'
 end
 exp_val = distributed_𝔼(mc, sample_func, worker_ids)
 var_val = distributed_var(mc, sample_func, exp_val, worker_ids)
