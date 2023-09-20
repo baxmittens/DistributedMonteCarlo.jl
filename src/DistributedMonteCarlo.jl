@@ -66,6 +66,7 @@ function distributed_𝔼(MC::MonteCarlo{DIM,MCT,RT}, fun::F, worker_ids::Vector
 		while nresults < MC.n
 			_res = take!(results)
 			nresults += 1
+			println("take $nresults / $(MC.n)")
 			add!(res,_res)
 			if mod(nresults,1000) == 0
 				println("n = $nresults")
@@ -99,6 +100,7 @@ function distributed_𝔼(MC::MonteCarlo{DIM,MCT,RT}, fun::F, worker_ids::Vector
 				i = 0
 			end
 		end
+		println("finish putting")
 	end
 	MC.convergence_history["exp_val"] = (conv_n, conv_norm)
 	return take!(intres)
