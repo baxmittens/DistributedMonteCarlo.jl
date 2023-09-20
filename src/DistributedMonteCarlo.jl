@@ -83,7 +83,7 @@ function distributed_𝔼(MC::MonteCarlo{DIM,MCT,RT}, fun::F, worker_ids::Vector
 
 	@sync begin
 		for shot in MC.shots
-			while !isready(wp)
+			while !isready(wp) && length(results.data)<num_workers
 				println("WorkerPool not ready")
 				sleep(1)
 			end
@@ -133,7 +133,7 @@ function distributed_var(MC::MonteCarlo{DIM,MCT,RT}, fun::F, exp_val::RT, worker
 
 	@sync begin
 		for shot in MC.shots
-			while !isready(wp)
+			while !isready(wp) && length(results.data)<num_workers
 				sleep(0.0001)
 			end
 			@async begin
