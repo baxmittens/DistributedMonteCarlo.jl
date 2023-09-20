@@ -83,19 +83,15 @@ function distributed_𝔼(MC::MonteCarlo{DIM,MCT,RT}, fun::F, worker_ids::Vector
 
 	@sync begin
 		for shot in MC.shots
-			i = 0
 			while !isready(wp)
-				sleep(0.0001)
+				println("WorkerPool not ready")
+				sleep(1)
 			end
-			i += 1
 			@async begin
 				val = coords(shot)
 				println(val)
 				_fval = remotecall_fetch(fun, wp, val, string(hash(val)))
 				put!(results, _fval)
-			end
-			while !isready(wp)
-				sleep(0.001)
 			end
 		end
 	end
@@ -108,7 +104,7 @@ function distributed_var(MC::MonteCarlo{DIM,MCT,RT}, fun::F, exp_val::RT, worker
 	sumthreadlock = Threads.Condition()
 	wp = WorkerPool(worker_ids);
 	num_workers = length(worker_ids)
-	results = Channel{RT}(num_workers+1)
+	results = Channel{RT}(2*num_workers)
 	intres = Channel{RT}(1)
 	nresults = 0
 
@@ -137,19 +133,14 @@ function distributed_var(MC::MonteCarlo{DIM,MCT,RT}, fun::F, exp_val::RT, worker
 
 	@sync begin
 		for shot in MC.shots
-			i = 0
 			while !isready(wp)
 				sleep(0.0001)
 			end
-			i += 1
 			@async begin
 				val = coords(shot)
 				println(val)
 				_fval = remotecall_fetch(fun, wp, val, string(hash(val)))
 				put!(results, _fval)
-			end
-			while !isready(wp)
-				sleep(0.001)
 			end
 		end
 	end
