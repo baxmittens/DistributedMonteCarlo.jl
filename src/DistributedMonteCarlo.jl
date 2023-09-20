@@ -60,13 +60,12 @@ function distributed_𝔼(MC::MonteCarlo{DIM,MCT,RT}, fun::F, worker_ids::Vector
 
 	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), floor(Int,MC.n/100)
 
-	thr = @async begin
+	@async begin
 		res = take!(results)
 		nresults += 1
 		while nresults < MC.n
 			_res = take!(results)
 			nresults += 1
-			println("take $nresults / $(MC.n)")
 			add!(res,_res)
 			if mod(nresults,1000) == 0
 				println("n = $nresults")
@@ -80,16 +79,6 @@ function distributed_𝔼(MC::MonteCarlo{DIM,MCT,RT}, fun::F, worker_ids::Vector
 		push!(conv_n, nresults)
 		push!(conv_norm, norm(res/nresults))
 		put!(intres, res/nresults)
-	end
-
-	@async begin
-		for i = 1:100_000
-			println(thr)
-			println(thr.result)
-			println(thr.logstate)
-			println("finish putting")
-			sleep(1)
-		end
 	end
 
 	@sync begin
@@ -111,7 +100,6 @@ function distributed_𝔼(MC::MonteCarlo{DIM,MCT,RT}, fun::F, worker_ids::Vector
 			end
 		end
 	end
-
 	MC.convergence_history["exp_val"] = (conv_n, conv_norm)
 	return take!(intres)
 end
