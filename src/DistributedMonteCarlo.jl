@@ -94,9 +94,8 @@ function distributed_𝔼(MC::MonteCarlo{DIM,MCT,RT}, fun::F, worker_ids::Vector
 				_fval = remotecall_fetch(fun, wp, val, string(hash(val)))
 				put!(results, _fval)
 			end
-			if i >= num_workers
-				sleep(0.0001)
-				i = 0
+			while !isready(wp)
+				sleep(0.001)
 			end
 		end
 	end
@@ -149,9 +148,8 @@ function distributed_var(MC::MonteCarlo{DIM,MCT,RT}, fun::F, exp_val::RT, worker
 				_fval = remotecall_fetch(fun, wp, val, string(hash(val)))
 				put!(results, _fval)
 			end
-			if i >= num_workers
-				sleep(0.0001)
-				i = 0
+			while !isready(wp)
+				sleep(0.001)
 			end
 		end
 	end
