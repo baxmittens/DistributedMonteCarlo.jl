@@ -341,7 +341,7 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 				end
 				if mod(nresults_i[resi], conv_interv) == 0
 					push!(conv_n_i[resi], nresults_i[resi])
-					push!(conv_norm_i[resi], norm(restmp[resi]))
+					push!(conv_norm_i[resi], norm(restmp[resi])/nresults_i[resi])
 				end
 				sleep(0.0001)		
 			end
@@ -385,6 +385,13 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 	end
 
 	return take!(intres)
+end
+
+function distributed_Sobol_Vars(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_ids::Vector{Int}) where {DIM,MCT,RT,F<:Function}
+	expval = DistributedMonteCarlo.distributed_sampling_A(MC, fun, worker_ids)
+	varval = DistributedMonteCarlo.distributed_sampling_B(MC, expval, fun, worker_ids)
+	sobolvars = DistributedMonteCarlo.distributed_sampling_A_B(MC, fun, worker_ids)
+	return expval, varval, sobolvars
 end
 
 export MonteCarlo, MonteCarloShot, load!, distributed_𝔼, distributed_var, MonteCarloSobol
