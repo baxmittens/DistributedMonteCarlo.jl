@@ -328,11 +328,11 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 				res,resi = take!(results)
 				nresults += 1
 				nresults_i[resi] += 1
-				if isdefined(restmp,resi)
+				if isassigned(restmp,resi)
 					add!(restmp[resi],res)
-					println(resi," ",res)
-					println(restmp[resi])
-					println()
+					#println(resi," ",res)
+					#println(restmp[resi])
+					#println()
 				else
 					restmp[resi] = res
 				end
