@@ -196,11 +196,11 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 
 	@async begin
 		res = take!(results)
-		nresults += 1
-		println("sumresults ",nresults)
+		nresults += 1		
 		while nresults < MC.n
 			_res = take!(results)
 			nresults += 1
+			println("sumresults ",nresults)
 			add!(res,_res)
 			if mod(nresults,1000) == 0
 				println("n = $nresults")
