@@ -352,23 +352,6 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 		end
 	end
 
-
-	for i = 1:d
-		soboli = copy(retA[1])
-		tsoboli = copy(retA[1])
-		fill!(soboli,0.0)
-		fill!(tsoboli,0.0)
-		for j = 1:N
-			soboli .+= retB[j] .* (retA_B[i,j] .- retA[j])			
-			tsoboli .+= (retA_B[i,j] .- retA[j]).^2			
-		end
-		soboli ./= N
-		tsoboli ./= 2*N
-		sobolinds[i] = soboli ./ varval
-		totalsobolinds[i] = tsoboli ./ varval
-
-	end
-
 	lin_inds = LinearIndices(size(MC.shotsA_B))
 	@sync begin
 		for num_i in 1:size(MC.shotsA_B,1)
