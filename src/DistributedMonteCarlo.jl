@@ -230,7 +230,7 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 			@async begin
 				val = coords(shot)
 				#_fval = remotecall_fetch(fun, wp, val, string(hash(val)))
-				_fval = remotecall_fetch(fun, wp, val, joinpath(restartpath,string(numshot)))
+				_fval = remotecall_fetch(fun, wp, val, joinpath(restartpath,"A",string(numshot)))
 				put!(results, _fval)
 			end
 			sleep(0.0001)
@@ -296,13 +296,99 @@ function distributed_sampling_B(MC::MonteCarloSobol{DIM,MCT,RT}, exp_val::RT, fu
 			@async begin
 				val = coords(shot)
 				#_fval = remotecall_fetch(fun, wp, val, string(hash(val)))
-				_fval = remotecall_fetch(fun, wp, val, joinpath(restartpath,string(numshot)))
+				_fval = remotecall_fetch(fun, wp, val, joinpath(restartpath,"B",string(numshot)))
 				put!(results, _fval)
 			end
 			sleep(0.0001)
 		end
 	end
-	MC.convergence_history["exp_val"] = (conv_n, conv_norm)
+	MC.convergence_history["var_val"] = (conv_n, conv_norm)
+	return take!(intres)
+end
+
+function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_ids::Vector{Int}) where {DIM,MCT,RT,F<:Function}
+	wp = WorkerPool(worker_ids);
+	num_workers = length(worker_ids)
+	results = Channel{Tuple{RT,Int}}(num_workers+1)
+	intres = Channel{Vector{RT}}(1)
+	nresults = 0
+	nresults_i = zeros(Int,DIM)
+
+	conv_n_i, conv_norm_i, conv_interv = Vector{Vector{Float64}}(undef,DIM), Vector{Vector{Float64}}(undef,DIM), floor(Int,MC.n/100)
+	for i in 1:DIM
+		conv_n_i[i] = Vector{Float64}()
+		conv_norm_i[i] = Vector{Float64}()
+	end
+
+	restmp = Vector{RT}(undef,DIM)
+
+	@async begin	
+		while nresults < MC.n*DIM
+			res,resi = take!(results)
+			nresults += 1
+			nresults_i[resi] += 1
+			if isdefined(restmp,resi)
+				add!(restmp[resi],res)
+			else
+				restmp[resi] = res
+			end
+			if mod(nresults,1000) == 0
+				println("n = $nresults")
+			end
+			if mod(nresults_i[resi], conv_interv) == 0
+				push!(conv_n_i[resi], nresults_i[resi])
+				push!(conv_norm, norm(restmp[resi]/nresults_i[resi]))
+			end
+			sleep(0.0001)		
+		end
+		for resi = 1:DIM
+			mul!(restmp[resi],1.0/nresults_i[resi])
+		end
+		put!(intres, restmp)
+	end
+
+
+	for i = 1:d
+		soboli = copy(retA[1])
+		tsoboli = copy(retA[1])
+		fill!(soboli,0.0)
+		fill!(tsoboli,0.0)
+		for j = 1:N
+			soboli .+= retB[j] .* (retA_B[i,j] .- retA[j])			
+			tsoboli .+= (retA_B[i,j] .- retA[j]).^2			
+		end
+		soboli ./= N
+		tsoboli ./= 2*N
+		sobolinds[i] = soboli ./ varval
+		totalsobolinds[i] = tsoboli ./ varval
+
+	end
+
+	lin_inds = LinearIndices(size(MC.shotsA_B))
+	@sync begin
+		for num_i in 1:size(MC.shotsA_B,1)
+			for num_j in 1:size(MC.shotsA_B,2)
+				shotA_B = MC.shotsA_B[num_i,num_j]
+				while !isready(wp) && length(results.data)<num_workers
+					println("WorkerPool not ready")
+					sleep(1)
+				end
+				@async begin
+					valA_B = coords(shotA_B)					
+					valA = coords(MC.shotsA[num_j])					
+					valB = coords(MC.shotsB[num_j])								
+					resA_B = remotecall_fetch(fun, wp, valA_B, joinpath(restartpath,"A_B",string(lin_inds[num_i,num_j])))
+					resA = remotecall_fetch(fun, wp, valA, joinpath(restartpath,"A",string(num_j)))
+					resB = remotecall_fetch(fun, wp, valB, joinpath(restartpath,"B",string(num_j)))
+					minus!(resA_B,resA)
+					mul!(resA_B,resB)
+					put!(results, (resA_B,num_i))
+				end
+				sleep(0.0001)
+			end
+		end
+	end
+
 	return take!(intres)
 end
 
