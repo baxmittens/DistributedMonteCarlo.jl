@@ -230,7 +230,7 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 			@async begin
 				val = coords(shot)
 				#_fval = remotecall_fetch(fun, wp, val, string(hash(val)))
-				_fval = remotecall_fetch(fun, wp, val, joinpath(restartpath,"A",string(numshot)))
+				_fval = remotecall_fetch(fun, wp, val, joinpath(MC.restartpath,"A",string(numshot)))
 				put!(results, _fval)
 			end
 			sleep(0.0001)
@@ -296,7 +296,7 @@ function distributed_sampling_B(MC::MonteCarloSobol{DIM,MCT,RT}, exp_val::RT, fu
 			@async begin
 				val = coords(shot)
 				#_fval = remotecall_fetch(fun, wp, val, string(hash(val)))
-				_fval = remotecall_fetch(fun, wp, val, joinpath(restartpath,"B",string(numshot)))
+				_fval = remotecall_fetch(fun, wp, val, joinpath(MC.restartpath,"B",string(numshot)))
 				put!(results, _fval)
 			end
 			sleep(0.0001)
@@ -322,29 +322,34 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 
 	restmp = Vector{RT}(undef,DIM)
 
-	@async begin	
-		while nresults < MC.n*DIM
-			res,resi = take!(results)
-			nresults += 1
-			nresults_i[resi] += 1
-			if isdefined(restmp,resi)
-				add!(restmp[resi],res)
-			else
-				restmp[resi] = res
+	@async begin
+		try	
+			while nresults < MC.n*DIM
+				res,resi = take!(results)
+				nresults += 1
+				nresults_i[resi] += 1
+				if isdefined(restmp,resi)
+					add!(restmp[resi],res)
+				else
+					restmp[resi] = res
+				end
+				if mod(nresults,1000) == 0
+					println("n = $nresults")
+				end
+				if mod(nresults_i[resi], conv_interv) == 0
+					push!(conv_n_i[resi], nresults_i[resi])
+					push!(conv_norm, norm(restmp[resi]/nresults_i[resi]))
+				end
+				sleep(0.0001)		
 			end
-			if mod(nresults,1000) == 0
-				println("n = $nresults")
+			for resi = 1:DIM
+				mul!(restmp[resi],1.0/nresults_i[resi])
 			end
-			if mod(nresults_i[resi], conv_interv) == 0
-				push!(conv_n_i[resi], nresults_i[resi])
-				push!(conv_norm, norm(restmp[resi]/nresults_i[resi]))
-			end
-			sleep(0.0001)		
+			put!(intres, restmp)
+		catch e
+			println(e)
+			rethrow(e)
 		end
-		for resi = 1:DIM
-			mul!(restmp[resi],1.0/nresults_i[resi])
-		end
-		put!(intres, restmp)
 	end
 
 
@@ -377,9 +382,9 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 					valA_B = coords(shotA_B)					
 					valA = coords(MC.shotsA[num_j])					
 					valB = coords(MC.shotsB[num_j])								
-					resA_B = remotecall_fetch(fun, wp, valA_B, joinpath(restartpath,"A_B",string(lin_inds[num_i,num_j])))
-					resA = remotecall_fetch(fun, wp, valA, joinpath(restartpath,"A",string(num_j)))
-					resB = remotecall_fetch(fun, wp, valB, joinpath(restartpath,"B",string(num_j)))
+					resA_B = remotecall_fetch(fun, wp, valA_B, joinpath(MC.restartpath,"A_B",string(lin_inds[num_i,num_j])))
+					resA = remotecall_fetch(fun, wp, valA, joinpath(MC.restartpath,"A",string(num_j)))
+					resB = remotecall_fetch(fun, wp, valB, joinpath(MC.restartpath,"B",string(num_j)))
 					minus!(resA_B,resA)
 					mul!(resA_B,resB)
 					put!(results, (resA_B,num_i))
