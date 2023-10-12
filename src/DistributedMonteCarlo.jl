@@ -330,6 +330,9 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 				nresults_i[resi] += 1
 				if isdefined(restmp,resi)
 					add!(restmp[resi],res)
+					println(resi," ",res)
+					println(restmp[resi])
+					println()
 				else
 					restmp[resi] = res
 				end
@@ -375,6 +378,10 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 				sleep(0.0001)
 			end
 		end
+	end
+
+	for i = 1:DIM
+		MC.convergence_history["S_$i"] = (conv_n_i[i], conv_norm_i[i])
 	end
 
 	return take!(intres)
