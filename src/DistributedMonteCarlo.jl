@@ -170,7 +170,7 @@ mutable struct MonteCarloSobol{DIM,MCT,RT}
 			MC.shotsB[i] = MonteCarloShot(ξs)
 		end
 		for i = 1:DIM
-			inds =  setdiff(1:d,i)
+			inds =  setdiff(1:DIM,i)
 			for j = 1:MC.n
 				ξvec[i] = MC.shotsB[j].coords[i]
 				ξvec[inds] = MC.shotsA[j].coords[inds]				
