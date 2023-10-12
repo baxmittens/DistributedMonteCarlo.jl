@@ -149,6 +149,39 @@ function distributed_var(MC::MonteCarlo{DIM,MCT,RT}, fun::F, exp_val::RT, worker
 	return take!(intres)
 end
 
-export MonteCarlo, MonteCarloShot, load!, distributed_𝔼, distributed_var
+mutable struct MonteCarloSobol{DIM,MCT,RT}
+	shotsA::Vector{MonteCarloShot{DIM,MCT}}
+	shotsB::Vector{MonteCarloShot{DIM,MCT}}
+	shotsA_B::Matrix{MonteCarloShot{DIM,MCT}}
+	path::String
+	n::Int
+	tol::Float64
+	rndF::Function
+	convergence_history::Dict{String,Tuple{Vector{Float64},Vector{Float64}}}
+	function MonteCarlo(::Val{DIM},::Type{MCT},::Type{RT}, n, tol, rndF::F2, path="./") where {DIM,MCT,RT,F2<:Function}
+		shotsA = Vector{MonteCarloShot{DIM,MCT}}(undef,n)
+		shotsB = Vector{MonteCarloShot{DIM,MCT}}(undef,n)
+		shotsA_B = Matrix{MonteCarloShot{DIM,MCT}}(undef,DIM,n)
+		MC = new{DIM,MCT,RT}(shotsA,shotsB,shotsA_B,path,n,tol,rndF,Dict{String,Tuple{Vector{Float64},Vector{Float64}}}())
+		for i = 1:MC.n
+			ξs = SVector(MC.rndF()...)
+			MC.shotsA[i] = MonteCarloShot(ξs)
+			ξs = SVector(MC.rndF()...)
+			MC.shotsB[i] = MonteCarloShot(ξs)
+		end
+		for i = 1:DIM
+			inds =  setdiff(1:d,i)
+			for j = 1:MC.n
+				ξvec[i] = MC.shotsB[j].coords[i]
+				ξvec[inds] = MC.shotsA[j].coords[inds]				
+				ξs = SVector(ξvec...)
+				MC.shotsA_B[i,j] = MonteCarloShot(ξs)
+			end
+		end
+		return MC
+	end
+end
+
+export MonteCarlo, MonteCarloShot, load!, distributed_𝔼, distributed_var, MonteCarloSobol
 
 end #module
