@@ -250,13 +250,26 @@ function distributed_sampling_B(MC::MonteCarloSobol{DIM,MCT,RT}, exp_val::RT, fu
 
 	@async begin
 		res = take!(results)
-		minus!(res,exp_val)
-		res .^= 2.0
+		tmp = similar(res)
+		
+		fill!(tmp,0.0)
+		add!(tmp,res)
+		minus!(tmp,exp_val)
+		pow!(tmp,2.0)
+		fill!(res,0.0)
+		add!(res,tmp)
+
 		nresults += 1		
 		while nresults < MC.n
 			_res = take!(results)
 			nresults += 1
-			add!(res,(_res .- exp_val).^2.0)
+			
+			fill!(tmp,0.0)
+			add!(tmp,res)
+			minus!(tmp,exp_val)
+			pow!(tmp,2.0)
+			add!(res,tmp)
+
 			if mod(nresults,1000) == 0
 				println("n = $nresults")
 			end
