@@ -265,7 +265,7 @@ function distributed_sampling_B(MC::MonteCarloSobol{DIM,MCT,RT}, exp_val::RT, fu
 			nresults += 1
 			
 			fill!(tmp,0.0)
-			add!(tmp,res)
+			add!(tmp,_res)
 			minus!(tmp,exp_val)
 			pow!(tmp,2.0)
 			add!(res,tmp)
