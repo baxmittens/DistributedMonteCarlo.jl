@@ -338,7 +338,7 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 				end
 				if mod(nresults_i[resi], conv_interv) == 0
 					push!(conv_n_i[resi], nresults_i[resi])
-					push!(conv_norm, norm(restmp[resi]/nresults_i[resi]))
+					push!(conv_norm_i[resi], norm(restmp[resi]/nresults_i[resi]))
 				end
 				sleep(0.0001)		
 			end
