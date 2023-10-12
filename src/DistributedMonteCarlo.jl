@@ -200,7 +200,7 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 		while nresults < MC.n
 			_res = take!(results)
 			nresults += 1
-			println("sumresults ",nresults)
+			#println("sumresults ",nresults)
 			add!(res,_res)
 			if mod(nresults,1000) == 0
 				println("n = $nresults")
@@ -214,7 +214,7 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 		push!(conv_n, nresults)
 		push!(conv_norm, norm(res/nresults))
 		put!(intres, res/nresults)
-		println("sumresults done")
+		#println("sumresults done")
 	end
 
 	@sync begin
@@ -225,16 +225,16 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 			end
 			@async begin
 				val = coords(shot)
-				println(val)
+				#println(val)
 				_fval = remotecall_fetch(fun, wp, val, string(hash(val)))
 				put!(results, _fval)
 			end
 			sleep(0.0001)
 		end
-		println("remotecall_fetch done")
+		#println("remotecall_fetch done")
 	end
 	MC.convergence_history["exp_val"] = (conv_n, conv_norm)
-	println("wait for endres")
+	#println("wait for endres")
 	return take!(intres)
 end
 
