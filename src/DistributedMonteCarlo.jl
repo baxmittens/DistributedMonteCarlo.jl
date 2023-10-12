@@ -183,6 +183,54 @@ mutable struct MonteCarloSobol{DIM,MCT,RT}
 	end
 end
 
+function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_ids::Vector{Int}) where {DIM,MCT,RT,F<:Function}
+	wp = WorkerPool(worker_ids);
+	num_workers = length(worker_ids)
+	results = Channel{RT}(num_workers+1)
+	intres = Channel{RT}(1)
+	nresults = 0
+
+	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), floor(Int,MC.n/100)
+
+	@async begin
+		res = take!(results)
+		nresults += 1
+		while nresults < MC.n
+			_res = take!(results)
+			nresults += 1
+			add!(res,_res)
+			if mod(nresults,1000) == 0
+				println("n = $nresults")
+			end
+			if mod(nresults, conv_interv) == 0
+				push!(conv_n, nresults)
+				push!(conv_norm, norm(res/nresults))
+			end
+			sleep(0.0001)		
+		end
+		push!(conv_n, nresults)
+		push!(conv_norm, norm(res/nresults))
+		put!(intres, res/nresults)
+	end
+
+	@sync begin
+		for shot in MC.shotsA
+			while !isready(wp) && length(results.data)<num_workers
+				println("WorkerPool not ready")
+				sleep(1)
+			end
+			@async begin
+				val = coords(shot)
+				println(val)
+				_fval = remotecall_fetch(fun, wp, val, string(hash(val)))
+				put!(results, _fval)
+			end
+		end
+	end
+	MC.convergence_history["exp_val"] = (conv_n, conv_norm)
+	return take!(intres)
+end
+
 export MonteCarlo, MonteCarloShot, load!, distributed_𝔼, distributed_var, MonteCarloSobol
 
 end #module
