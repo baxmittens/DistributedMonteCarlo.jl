@@ -225,6 +225,7 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 				_fval = remotecall_fetch(fun, wp, val, string(hash(val)))
 				put!(results, _fval)
 			end
+			sleep(0.0001)
 		end
 	end
 	MC.convergence_history["exp_val"] = (conv_n, conv_norm)
