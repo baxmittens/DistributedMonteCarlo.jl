@@ -153,16 +153,16 @@ mutable struct MonteCarloSobol{DIM,MCT,RT}
 	shotsA::Vector{MonteCarloShot{DIM,MCT}}
 	shotsB::Vector{MonteCarloShot{DIM,MCT}}
 	shotsA_B::Matrix{MonteCarloShot{DIM,MCT}}
-	path::String
+	restartpath::String
 	n::Int
 	tol::Float64
 	rndF::Function
 	convergence_history::Dict{String,Tuple{Vector{Float64},Vector{Float64}}}
-	function MonteCarlo(::Val{DIM},::Type{MCT},::Type{RT}, n, tol, rndF::F2, path="./") where {DIM,MCT,RT,F2<:Function}
+	function MonteCarloSobol(::Val{DIM},::Type{MCT},::Type{RT}, n, tol, rndF::F2, restartpath="./") where {DIM,MCT,RT,F2<:Function}
 		shotsA = Vector{MonteCarloShot{DIM,MCT}}(undef,n)
 		shotsB = Vector{MonteCarloShot{DIM,MCT}}(undef,n)
 		shotsA_B = Matrix{MonteCarloShot{DIM,MCT}}(undef,DIM,n)
-		MC = new{DIM,MCT,RT}(shotsA,shotsB,shotsA_B,path,n,tol,rndF,Dict{String,Tuple{Vector{Float64},Vector{Float64}}}())
+		MC = new{DIM,MCT,RT}(shotsA,shotsB,shotsA_B,restartpath,n,tol,rndF,Dict{String,Tuple{Vector{Float64},Vector{Float64}}}())
 		for i = 1:MC.n
 			ξs = SVector(MC.rndF()...)
 			MC.shotsA[i] = MonteCarloShot(ξs)
