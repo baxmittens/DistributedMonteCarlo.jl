@@ -222,14 +222,15 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 	end
 
 	@sync begin
-		for shot in MC.shotsA
+		for (numshot,shot) in enumerate(MC.shotsA)
 			while !isready(wp) && length(results.data)<num_workers
 				println("WorkerPool not ready")
 				sleep(1)
 			end
 			@async begin
 				val = coords(shot)
-				_fval = remotecall_fetch(fun, wp, val, string(hash(val)))
+				#_fval = remotecall_fetch(fun, wp, val, string(hash(val)))
+				_fval = remotecall_fetch(fun, wp, val, jointpath(restartpath,string(numshot)))
 				put!(results, _fval)
 			end
 			sleep(0.0001)
@@ -287,14 +288,15 @@ function distributed_sampling_B(MC::MonteCarloSobol{DIM,MCT,RT}, exp_val::RT, fu
 	end
 
 	@sync begin
-		for shot in MC.shotsB
+		for (numshot,shot) in enumerate(MC.shotsB)
 			while !isready(wp) && length(results.data)<num_workers
 				println("WorkerPool not ready")
 				sleep(1)
 			end
 			@async begin
 				val = coords(shot)
-				_fval = remotecall_fetch(fun, wp, val, string(hash(val)))
+				#_fval = remotecall_fetch(fun, wp, val, string(hash(val)))
+				_fval = remotecall_fetch(fun, wp, val, jointpath(restartpath,string(numshot)))
 				put!(results, _fval)
 			end
 			sleep(0.0001)
