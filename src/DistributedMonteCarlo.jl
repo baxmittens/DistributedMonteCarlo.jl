@@ -345,9 +345,9 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 				end
 				sleep(0.0001)		
 			end
-			#for resi = 1:DIM
-			#	mul!(restmp[resi],1.0/nresults_i[resi])
-			#end
+			for resi = 1:DIM
+				mul!(restmp[resi],1.0/nresults_i[resi])
+			end
 			put!(intres, restmp)
 		catch e
 			println(e)
