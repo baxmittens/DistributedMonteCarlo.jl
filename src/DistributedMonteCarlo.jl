@@ -169,6 +169,7 @@ mutable struct MonteCarloSobol{DIM,MCT,RT}
 			ξs = SVector(MC.rndF()...)
 			MC.shotsB[i] = MonteCarloShot(ξs)
 		end
+		ξvec = zeros(MCT, DIM)
 		for i = 1:DIM
 			inds =  setdiff(1:DIM,i)
 			for j = 1:MC.n
