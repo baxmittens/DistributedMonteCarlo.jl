@@ -355,7 +355,7 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 		end
 	end
 
-	lin_inds = LinearIndices(size(MC.shotsA_B))
+	#lin_inds = LinearIndices(size(MC.shotsA_B))
 	@sync begin
 		for num_i in 1:size(MC.shotsA_B,1)
 			for num_j in 1:size(MC.shotsA_B,2)
@@ -367,8 +367,10 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 				@async begin
 					valA_B = coords(shotA_B)					
 					valA = coords(MC.shotsA[num_j])					
-					valB = coords(MC.shotsB[num_j])								
-					resA_B = remotecall_fetch(fun, wp, valA_B, joinpath(MC.restartpath,"A_B",string(lin_inds[num_i,num_j])))
+					valB = coords(MC.shotsB[num_j])
+					ID = string(num_i)*"_"*string(num_j)								
+					#resA_B = remotecall_fetch(fun, wp, valA_B, joinpath(MC.restartpath,"A_B",string(lin_inds[num_i,num_j])))
+					resA_B = remotecall_fetch(fun, wp, valA_B, joinpath(MC.restartpath,"A_B",ID))
 					resA = remotecall_fetch(fun, wp, valA, joinpath(MC.restartpath,"A",string(num_j)))
 					resB = remotecall_fetch(fun, wp, valB, joinpath(MC.restartpath,"B",string(num_j)))
 					minus!(resA_B,resA)
