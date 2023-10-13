@@ -197,7 +197,8 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 	intres = Channel{RT}(1)
 	nresults = 0
 
-	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), floor(Int,MC.n/1000)
+	#conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), floor(Int,MC.n/1000)
+	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), max(length(worker_ids),floor(Int,MC.n/1000))
 
 	@async begin
 		res = take!(results)
@@ -250,7 +251,8 @@ function distributed_sampling_B(MC::MonteCarloSobol{DIM,MCT,RT}, exp_val::RT, fu
 	intres = Channel{RT}(1)
 	nresults = 0
 
-	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), floor(Int,MC.n/1000)
+	#conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), floor(Int,MC.n/1000)
+	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), max(length(worker_ids),floor(Int,MC.n/1000))
 
 	@async begin
 		res = take!(results)
@@ -319,7 +321,8 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 	nresults = 0
 	nresults_i = zeros(Int,DIM)
 
-	conv_n_i, conv_norm_i, conv_interv = Vector{Vector{Float64}}(undef,DIM), Vector{Vector{Float64}}(undef,DIM), floor(Int,MC.n/1000)
+	conv_n_i, conv_norm_i, conv_interv = Vector{Vector{Float64}}(undef,DIM), Vector{Vector{Float64}}(undef,DIM), max(length(worker_ids),floor(Int,MC.n/1000))
+	#conv_n_i, conv_norm_i, conv_interv = Vector{Vector{Float64}}(undef,DIM), Vector{Vector{Float64}}(undef,DIM), floor(Int,MC.n/1000)
 	for i in 1:DIM
 		conv_n_i[i] = Vector{Float64}()
 		conv_norm_i[i] = Vector{Float64}()
