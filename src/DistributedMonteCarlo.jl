@@ -4,6 +4,7 @@ using StaticArrays
 using Distributed
 import AltInplaceOpsInterface: add!, minus!, pow!, max!, min!
 using LinearAlgebra
+using UnicodePlots
 
 struct MonteCarloShot{DIM,MCT}
 	coords::SVector{DIM,MCT}
@@ -196,7 +197,7 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 	intres = Channel{RT}(1)
 	nresults = 0
 
-	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), floor(Int,MC.n/100)
+	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), floor(Int,MC.n/1000)
 
 	@async begin
 		res = take!(results)
@@ -206,11 +207,13 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 			nresults += 1
 			add!(res,_res)
 			if mod(nresults,1000) == 0
-				println("n = $nresults")
+				println("n = $nresults of $(MC.n) total shots")
 			end
 			if mod(nresults, conv_interv) == 0
 				push!(conv_n, nresults)
 				push!(conv_norm, norm(res/nresults))
+				println("convergence exp_val")
+				display(scatterplot(conv_n,conv_norm))
 			end
 			sleep(0.0001)		
 		end
@@ -224,8 +227,8 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 	@sync begin
 		for (numshot,shot) in enumerate(MC.shotsA)
 			while !isready(wp) && length(results.data)<num_workers
-				println("WorkerPool not ready")
-				sleep(1)
+				#println("WorkerPool not ready")
+				sleep(0.1)
 			end
 			@async begin
 				val = coords(shot)
@@ -247,7 +250,7 @@ function distributed_sampling_B(MC::MonteCarloSobol{DIM,MCT,RT}, exp_val::RT, fu
 	intres = Channel{RT}(1)
 	nresults = 0
 
-	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), floor(Int,MC.n/100)
+	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), floor(Int,MC.n/1000)
 
 	@async begin
 		res = take!(results)
@@ -272,11 +275,13 @@ function distributed_sampling_B(MC::MonteCarloSobol{DIM,MCT,RT}, exp_val::RT, fu
 			add!(res,tmp)
 
 			if mod(nresults,1000) == 0
-				println("n = $nresults")
+				println("n = $nresults of $(MC.n) total shots")
 			end
 			if mod(nresults, conv_interv) == 0
 				push!(conv_n, nresults)
 				push!(conv_norm, norm(res/nresults))
+				println("convergence var_val")
+				display(scatterplot(conv_n,conv_norm))				
 			end
 			sleep(0.0001)		
 		end
@@ -290,8 +295,8 @@ function distributed_sampling_B(MC::MonteCarloSobol{DIM,MCT,RT}, exp_val::RT, fu
 	@sync begin
 		for (numshot,shot) in enumerate(MC.shotsB)
 			while !isready(wp) && length(results.data)<num_workers
-				println("WorkerPool not ready")
-				sleep(1)
+				#println("WorkerPool not ready")
+				sleep(0.1)
 			end
 			@async begin
 				val = coords(shot)
@@ -314,7 +319,7 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 	nresults = 0
 	nresults_i = zeros(Int,DIM)
 
-	conv_n_i, conv_norm_i, conv_interv = Vector{Vector{Float64}}(undef,DIM), Vector{Vector{Float64}}(undef,DIM), floor(Int,MC.n/100)
+	conv_n_i, conv_norm_i, conv_interv = Vector{Vector{Float64}}(undef,DIM), Vector{Vector{Float64}}(undef,DIM), floor(Int,MC.n/1000)
 	for i in 1:DIM
 		conv_n_i[i] = Vector{Float64}()
 		conv_norm_i[i] = Vector{Float64}()
@@ -337,11 +342,13 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 					restmp[resi] = res
 				end
 				if mod(nresults,1000) == 0
-					println("n = $nresults")
+					println("n = $nresults of $(MC.n*DIM) total shots")
 				end
 				if mod(nresults_i[resi], conv_interv) == 0
 					push!(conv_n_i[resi], nresults_i[resi])
 					push!(conv_norm_i[resi], norm(restmp[resi])/nresults_i[resi])
+					println("convergence S_$resi")
+					display(scatterplot(conv_n_i[resi],conv_norm_i[resi]))	
 				end
 				sleep(0.0001)		
 			end
@@ -361,8 +368,8 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 			for num_j in 1:size(MC.shotsA_B,2)
 				shotA_B = MC.shotsA_B[num_i,num_j]
 				while !isready(wp) && length(results.data)<num_workers
-					println("WorkerPool not ready")
-					sleep(1)
+					#println("WorkerPool not ready")
+					sleep(0.1)
 				end
 				@async begin
 					valA_B = coords(shotA_B)					

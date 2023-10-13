@@ -9,6 +9,7 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 AltInplaceOpsInterface = "d59240d3-86bd-48c4-8b44-fa29ea3b0621"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+UnicodePlots = "b8865327-cd53-5732-bb35-84acbb429228"
 
 [compat]
 julia = "1"
