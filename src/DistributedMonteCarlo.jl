@@ -360,7 +360,7 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 						conv_act_i = length(conv_n_i[resi])						
 						push!(conv_rel_norm_i[resi], abs(conv_norm_i[resi][conv_act_i]-conv_norm_i[resi][conv_act_i-1])/conv_norm_i[resi][1])
 						println("convergence rel S_$resi")
-						display(scatterplot(conv_rel_norm_i[resi],conv_norm_i[resi][2:end]))
+						display(scatterplot(conv_n_i[resi][2:end],conv_rel_norm_i[resi]))
 					end	
 				end
 				sleep(0.0001)		
