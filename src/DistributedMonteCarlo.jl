@@ -322,10 +322,14 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 	nresults_i = zeros(Int,DIM)
 
 	conv_n_i, conv_norm_i, conv_interv = Vector{Vector{Float64}}(undef,DIM), Vector{Vector{Float64}}(undef,DIM), max(length(worker_ids),floor(Int,MC.n/1000))
+	conv_rel_norm_i = Vector{Vector{Float64}}(undef,DIM)
+	
+
 	#conv_n_i, conv_norm_i, conv_interv = Vector{Vector{Float64}}(undef,DIM), Vector{Vector{Float64}}(undef,DIM), floor(Int,MC.n/1000)
 	for i in 1:DIM
 		conv_n_i[i] = Vector{Float64}()
 		conv_norm_i[i] = Vector{Float64}()
+		conv_rel_norm_i[i] = Vector{Float64}()
 	end
 
 	restmp = Vector{RT}(undef,DIM)
@@ -351,7 +355,13 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 					push!(conv_n_i[resi], nresults_i[resi])
 					push!(conv_norm_i[resi], norm(restmp[resi])/nresults_i[resi])
 					println("convergence S_$resi")
-					display(scatterplot(conv_n_i[resi],conv_norm_i[resi]))	
+					display(scatterplot(conv_n_i[resi],conv_norm_i[resi]))
+					if length(conv_n_i[resi]) > 1
+						conv_act_i = length(conv_n_i[resi])						
+						push!(conv_rel_norm_i[resi], abs(conv_norm_i[resi][conv_act_i]-conv_norm_i[resi][conv_act_i-1])/conv_norm_i[resi][1])
+						println("convergence rel S_$resi")
+						display(scatterplot(conv_rel_norm_i[resi],conv_norm_i[resi][2:end]))
+					end	
 				end
 				sleep(0.0001)		
 			end
