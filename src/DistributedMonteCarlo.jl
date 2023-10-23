@@ -404,6 +404,7 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 
 	for i = 1:DIM
 		MC.convergence_history["S_$i"] = (conv_n_i[i], conv_norm_i[i])
+		MC.convergence_history["relS_$i"] = (conv_n_i[i][2:end], conv_rel_norm_i[i])
 	end
 
 	return take!(intres)
