@@ -200,7 +200,7 @@ function load!(MC::MonteCarloSobol{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
 		resize!(MC.shotsB,n)
 	end
 	for i = 1:n
-		snapshotdir = readdir(joinpath(restartpath,"A",snapshotdirsA[i]))
+		#snapshotdir = readdir(joinpath(restartpath,"A",snapshotdirsA[i]))
 		pars_txt = joinpath(restartpath,"A",snapshotdirsA[i],"coords.txt")
 		if isfile(pars_txt)
 			f = open(pars_txt);
@@ -212,7 +212,7 @@ function load!(MC::MonteCarloSobol{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
 	end
 	snapshotdirsB = readdir(joinpath(restartpath,"B"))
 	for i = 1:length(snapshotdirsB)
-		snapshotdir = readdir(joinpath(restartpath,"B",snapshotdirsB[i]))
+		#snapshotdir = readdir(joinpath(restartpath,"B",snapshotdirsB[i]))
 		pars_txt = joinpath(restartpath,"B",snapshotdirsB[i],"coords.txt")
 		if isfile(pars_txt)
 			f = open(pars_txt);
