@@ -34,6 +34,7 @@ function load!(MC::MonteCarlo{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
 	if n > MC.n
 		@warn "change size of n from $(MC.n) to $n"
 		MC.n = n
+		resize!(MC.shots,n)
 	end
 	for i = 1:n
 		snapshotdir = readdir(joinpath(restartpath,snapshotdirs[i]))
@@ -160,16 +161,15 @@ mutable struct MonteCarloSobol{DIM,MCT,RT}
 	shotsA::Vector{MonteCarloShot{DIM,MCT}}
 	shotsB::Vector{MonteCarloShot{DIM,MCT}}
 	shotsA_B::Matrix{MonteCarloShot{DIM,MCT}}
-	restartpath::String
 	n::Int
 	tol::Float64
 	rndF::Function
 	convergence_history::Dict{String,Tuple{Vector{Float64},Vector{Float64}}}
-	function MonteCarloSobol(::Val{DIM},::Type{MCT},::Type{RT}, n, tol, rndF::F2, restartpath="./") where {DIM,MCT,RT,F2<:Function}
+	function MonteCarloSobol(::Val{DIM},::Type{MCT},::Type{RT}, n, tol, rndF::F2) where {DIM,MCT,RT,F2<:Function}
 		shotsA = Vector{MonteCarloShot{DIM,MCT}}(undef,n)
 		shotsB = Vector{MonteCarloShot{DIM,MCT}}(undef,n)
 		shotsA_B = Matrix{MonteCarloShot{DIM,MCT}}(undef,DIM,n)
-		MC = new{DIM,MCT,RT}(shotsA,shotsB,shotsA_B,restartpath,n,tol,rndF,Dict{String,Tuple{Vector{Float64},Vector{Float64}}}())
+		MC = new{DIM,MCT,RT}(shotsA,shotsB,shotsA_B,n,tol,rndF,Dict{String,Tuple{Vector{Float64},Vector{Float64}}}())
 		for i = 1:MC.n
 			ξs = SVector(MC.rndF()...)
 			MC.shotsA[i] = MonteCarloShot(ξs)
@@ -188,6 +188,55 @@ mutable struct MonteCarloSobol{DIM,MCT,RT}
 		end
 		return MC
 	end
+end
+
+function load!(MC::MonteCarlo{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
+	snapshotdirsA = readdir(joinpath(restartpath,"A"))
+	n = length(snapshotdirsA)
+	if n > MC.n
+		@warn "change size of n from $(MC.n) to $n"
+		MC.n = n
+		resize!(MC.shotsA,n)
+		resize!(MC.shotsB,n)
+	end
+	for i = 1:n
+		snapshotdir = readdir(joinpath(restartpath,snapshotdirsA[i]))
+		pars_txt = joinpath(restartpath,snapshotdirsA[i],"coords.txt")
+		if isfile(pars_txt)
+			f = open(pars_txt);
+			lines = readlines(f)
+			close(f)
+			coords = SVector(map(x->parse(Float64,x),lines)...)
+			@assert snapshotdirsA[i]==string(hash(coords))
+			MC.shotsA[i] = MonteCarloShot(coords)
+		end
+	end
+	snapshotdirsB = readdir(joinpath(restartpath,"B"))
+	for i = 1:length(snapshotdirsB)
+		snapshotdir = readdir(joinpath(restartpath,snapshotdirsB[i]))
+		pars_txt = joinpath(restartpath,snapshotdirsB[i],"coords.txt")
+		if isfile(pars_txt)
+			f = open(pars_txt);
+			lines = readlines(f)
+			close(f)
+			coords = SVector(map(x->parse(Float64,x),lines)...)
+			@assert snapshotdirsB[i]==string(hash(coords))
+			MC.shotsB[i] = MonteCarloShot(coords)
+		end
+	end
+	shotsA_B = Matrix{MonteCarloShot{DIM,MCT}}(undef,DIM,MC.n)
+	ξvec = zeros(MCT, DIM)
+	for i = 1:DIM
+		inds =  setdiff(1:DIM,i)
+		for j = 1:MC.n
+			ξvec[i] = MC.shotsB[j].coords[i]
+			ξvec[inds] = MC.shotsA[j].coords[inds]				
+			ξs = SVector(ξvec...)
+			shotsA_B[i,j] = MonteCarloShot(ξs)
+		end
+	end
+	MC.shotsA_B = shotsA_B
+	return nothing
 end
 
 function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_ids::Vector{Int}) where {DIM,MCT,RT,F<:Function}
@@ -234,7 +283,7 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 			@async begin
 				val = coords(shot)
 				#_fval = remotecall_fetch(fun, wp, val, string(hash(val)))
-				_fval = remotecall_fetch(fun, wp, val, joinpath(MC.restartpath,"A",string(numshot)))
+				_fval = remotecall_fetch(fun, wp, val, joinpath("A",string(numshot)))
 				put!(results, _fval)
 			end
 			sleep(0.0001)
@@ -303,7 +352,7 @@ function distributed_sampling_B(MC::MonteCarloSobol{DIM,MCT,RT}, exp_val::RT, fu
 			@async begin
 				val = coords(shot)
 				#_fval = remotecall_fetch(fun, wp, val, string(hash(val)))
-				_fval = remotecall_fetch(fun, wp, val, joinpath(MC.restartpath,"B",string(numshot)))
+				_fval = remotecall_fetch(fun, wp, val, joinpath("B",string(numshot)))
 				put!(results, _fval)
 			end
 			sleep(0.0001)
@@ -390,9 +439,9 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 					valB = coords(MC.shotsB[num_j])
 					ID = string(num_i)*"_"*string(num_j)								
 					#resA_B = remotecall_fetch(fun, wp, valA_B, joinpath(MC.restartpath,"A_B",string(lin_inds[num_i,num_j])))
-					resA_B = remotecall_fetch(fun, wp, valA_B, joinpath(MC.restartpath,"A_B",ID))
-					resA = remotecall_fetch(fun, wp, valA, joinpath(MC.restartpath,"A",string(num_j)))
-					resB = remotecall_fetch(fun, wp, valB, joinpath(MC.restartpath,"B",string(num_j)))
+					resA_B = remotecall_fetch(fun, wp, valA_B, joinpath("A_B",ID))
+					resA = remotecall_fetch(fun, wp, valA, joinpath("A",string(num_j)))
+					resB = remotecall_fetch(fun, wp, valB, joinpath("B",string(num_j)))
 					minus!(resA_B,resA)
 					mul!(resA_B,resB)
 					put!(results, (resA_B,num_i))
