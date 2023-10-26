@@ -209,7 +209,7 @@ function load!(MC::MonteCarloSobol{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
 			lines = readlines(f)
 			close(f)
 			coords = SVector(map(x->parse(Float64,x),lines)...)
-			MC.shotsA[ind] = MonteCarloShot(coords)
+			MC.shotsA[i] = MonteCarloShot(coords)
 		end
 	end
 	snapshotdirsB = readdir(joinpath(restartpath,"B"))
@@ -223,7 +223,7 @@ function load!(MC::MonteCarloSobol{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
 			lines = readlines(f)
 			close(f)
 			coords = SVector(map(x->parse(Float64,x),lines)...)
-			MC.shotsB[ind] = MonteCarloShot(coords)
+			MC.shotsB[i] = MonteCarloShot(coords)
 		end
 	end
 	shotsA_B = Matrix{MonteCarloShot{DIM,MCT}}(undef,DIM,MC.n)
