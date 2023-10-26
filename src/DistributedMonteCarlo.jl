@@ -199,27 +199,31 @@ function load!(MC::MonteCarloSobol{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
 		resize!(MC.shotsA,n)
 		resize!(MC.shotsB,n)
 	end
+	_permA = sortperm(map(x->parse(Int,x),snapshotdirsA))
 	for i = 1:n
+		ind = _permA[i]
 		#snapshotdir = readdir(joinpath(restartpath,"A",snapshotdirsA[i]))
-		pars_txt = joinpath(restartpath,"A",snapshotdirsA[i],"coords.txt")
+		pars_txt = joinpath(restartpath,"A",snapshotdirsA[ind],"coords.txt")
 		if isfile(pars_txt)
 			f = open(pars_txt);
 			lines = readlines(f)
 			close(f)
 			coords = SVector(map(x->parse(Float64,x),lines)...)
-			MC.shotsA[i] = MonteCarloShot(coords)
+			MC.shotsA[ind] = MonteCarloShot(coords)
 		end
 	end
 	snapshotdirsB = readdir(joinpath(restartpath,"B"))
+	_permB = sortperm(map(x->parse(Int,x),snapshotdirsA))
 	for i = 1:length(snapshotdirsB)
+		ind = _permB[i]
 		#snapshotdir = readdir(joinpath(restartpath,"B",snapshotdirsB[i]))
-		pars_txt = joinpath(restartpath,"B",snapshotdirsB[i],"coords.txt")
+		pars_txt = joinpath(restartpath,"B",snapshotdirsB[ind],"coords.txt")
 		if isfile(pars_txt)
 			f = open(pars_txt);
 			lines = readlines(f)
 			close(f)
 			coords = SVector(map(x->parse(Float64,x),lines)...)
-			MC.shotsB[i] = MonteCarloShot(coords)
+			MC.shotsB[ind] = MonteCarloShot(coords)
 		end
 	end
 	shotsA_B = Matrix{MonteCarloShot{DIM,MCT}}(undef,DIM,MC.n)
