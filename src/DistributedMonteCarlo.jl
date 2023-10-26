@@ -200,27 +200,25 @@ function load!(MC::MonteCarloSobol{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
 		resize!(MC.shotsB,n)
 	end
 	for i = 1:n
-		snapshotdir = readdir(joinpath(restartpath,snapshotdirsA[i]))
-		pars_txt = joinpath(restartpath,snapshotdirsA[i],"coords.txt")
+		snapshotdir = readdir(joinpath(restartpath,"A",snapshotdirsA[i]))
+		pars_txt = joinpath(restartpath,"A",snapshotdirsA[i],"coords.txt")
 		if isfile(pars_txt)
 			f = open(pars_txt);
 			lines = readlines(f)
 			close(f)
 			coords = SVector(map(x->parse(Float64,x),lines)...)
-			@assert snapshotdirsA[i]==string(hash(coords))
 			MC.shotsA[i] = MonteCarloShot(coords)
 		end
 	end
 	snapshotdirsB = readdir(joinpath(restartpath,"B"))
 	for i = 1:length(snapshotdirsB)
-		snapshotdir = readdir(joinpath(restartpath,snapshotdirsB[i]))
-		pars_txt = joinpath(restartpath,snapshotdirsB[i],"coords.txt")
+		snapshotdir = readdir(joinpath(restartpath,"B",snapshotdirsB[i]))
+		pars_txt = joinpath(restartpath,"B",snapshotdirsB[i],"coords.txt")
 		if isfile(pars_txt)
 			f = open(pars_txt);
 			lines = readlines(f)
 			close(f)
 			coords = SVector(map(x->parse(Float64,x),lines)...)
-			@assert snapshotdirsB[i]==string(hash(coords))
 			MC.shotsB[i] = MonteCarloShot(coords)
 		end
 	end
