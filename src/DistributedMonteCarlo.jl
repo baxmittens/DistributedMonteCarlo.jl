@@ -190,7 +190,7 @@ mutable struct MonteCarloSobol{DIM,MCT,RT}
 	end
 end
 
-function load!(MC::MonteCarlo{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
+function load!(MC::MonteCarloSobol{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
 	snapshotdirsA = readdir(joinpath(restartpath,"A"))
 	n = length(snapshotdirsA)
 	if n > MC.n
