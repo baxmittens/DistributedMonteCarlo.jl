@@ -371,8 +371,8 @@ end
 function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_ids::Vector{Int}, verbose::Bool=false) where {DIM,MCT,RT,F<:Function}
 	wp = WorkerPool(worker_ids);
 	num_workers = length(worker_ids)
-	results = Channel{Tuple{RT,Int}}(num_workers+1)
-	intres = Channel{Vector{RT}}(1)
+	results = Channel{Tuple{RT,RT,Int}}(num_workers+1)
+	intres = Channel{Tuple{Vector{RT},Vector{RT}}}(1)
 	nresults = 0
 	nresults_i = zeros(Int,DIM)
 
@@ -388,20 +388,23 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 	end
 
 	restmp = Vector{RT}(undef,DIM)
+	restmp_totvar = Vector{RT}(undef,DIM)
 
 	@async begin
 		try	
 			while nresults < MC.n*DIM
-				res,resi = take!(results)
+				res,restot,resi = take!(results)
 				nresults += 1
 				nresults_i[resi] += 1
 				if isassigned(restmp,resi)
 					add!(restmp[resi],res)
+					add!(restmp_totvar[resi],restot)
 					#println(resi," ",res)
 					#println(restmp[resi])
 					#println()
 				else
 					restmp[resi] = res
+					restmp_totvar[resi] = restot
 				end
 				if verbose && mod(nresults,1000) == 0
 					println("n = $nresults of $(MC.n*DIM) total shots")
@@ -425,9 +428,10 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 				sleep(0.0001)		
 			end
 			for resi = 1:DIM
-				mul!(restmp[resi],1.0/nresults_i[resi])
+				mul!(restmp[resi], 1.0/nresults_i[resi])
+				mul!(restmp_totvar[resi], 1.0/(2*nresults_i[resi]))
 			end
-			put!(intres, restmp)
+			put!(intres, (restmp, restmp_totvar))
 		catch e
 			println(e)
 			rethrow(e)
@@ -452,9 +456,14 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 					resA_B = remotecall_fetch(fun, wp, valA_B, joinpath("A_B",ID))
 					resA = remotecall_fetch(fun, wp, valA, joinpath("A",string(num_j)))
 					resB = remotecall_fetch(fun, wp, valB, joinpath("B",string(num_j)))
+					copy_resA_B = deepcopy(resA_B)
 					minus!(resA_B,resA)
 					mul!(resA_B,resB)
-					put!(results, (resA_B,num_i))
+
+					minus!(resA,copy_resA_B)
+					pow!(resA,2.0)
+
+					put!(results, (resA_B,res_A,num_i))
 				end
 				sleep(0.0001)
 			end
@@ -470,10 +479,13 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 end
 
 function distributed_Sobol_Vars(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_ids::Vector{Int}, verbose::Bool=false) where {DIM,MCT,RT,F<:Function}
-	expval = DistributedMonteCarlo.distributed_sampling_A(MC, fun, worker_ids, verbose)
-	varval = DistributedMonteCarlo.distributed_sampling_B(MC, expval, fun, worker_ids, verbose)
-	sobolvars = DistributedMonteCarlo.distributed_sampling_A_B(MC, fun, worker_ids, verbose)
-	return expval, varval, sobolvars
+	println("Distributed sampling A")
+	@time expval = DistributedMonteCarlo.distributed_sampling_A(MC, fun, worker_ids, verbose)
+	println("Distributed sampling B")
+	@time varval = DistributedMonteCarlo.distributed_sampling_B(MC, expval, fun, worker_ids, verbose)
+	println("Distributed sampling A_B")
+	@time sobolvars,totsobolvars = DistributedMonteCarlo.distributed_sampling_A_B(MC, fun, worker_ids, verbose)
+	return expval, varval, sobolvars, totsobolvars
 end
 
 export MonteCarlo, MonteCarloShot, load!, distributed_𝔼, distributed_var, MonteCarloSobol
