@@ -241,7 +241,7 @@ function load!(MC::MonteCarloSobol{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
 	return nothing
 end
 
-function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_ids::Vector{Int}) where {DIM,MCT,RT,F<:Function}
+function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_ids::Vector{Int}, verbose::Bool=false) where {DIM,MCT,RT,F<:Function}
 	wp = WorkerPool(worker_ids);
 	num_workers = length(worker_ids)
 	results = Channel{RT}(num_workers+1)
@@ -258,14 +258,16 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 			_res = take!(results)
 			nresults += 1
 			add!(res,_res)
-			if mod(nresults,1000) == 0
+			if verbose && mod(nresults,1000) == 0
 				println("n = $nresults of $(MC.n) total shots")
 			end
 			if mod(nresults, conv_interv) == 0
 				push!(conv_n, nresults)
 				push!(conv_norm, norm(res/nresults))
-				println("convergence exp_val")
-				display(scatterplot(conv_n,conv_norm))
+				if verbose
+					println("convergence exp_val")
+					display(scatterplot(conv_n,conv_norm))
+				end
 			end
 			sleep(0.0001)		
 		end
@@ -295,7 +297,7 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 	return take!(intres)
 end
 
-function distributed_sampling_B(MC::MonteCarloSobol{DIM,MCT,RT}, exp_val::RT, fun::F, worker_ids::Vector{Int}) where {DIM,MCT,RT,F<:Function}
+function distributed_sampling_B(MC::MonteCarloSobol{DIM,MCT,RT}, exp_val::RT, fun::F, worker_ids::Vector{Int}, verbose::Bool=false) where {DIM,MCT,RT,F<:Function}
 	wp = WorkerPool(worker_ids);
 	num_workers = length(worker_ids)
 	results = Channel{RT}(num_workers+1)
@@ -327,14 +329,16 @@ function distributed_sampling_B(MC::MonteCarloSobol{DIM,MCT,RT}, exp_val::RT, fu
 			pow!(tmp,2.0)
 			add!(res,tmp)
 
-			if mod(nresults,1000) == 0
+			if verbose && mod(nresults,1000) == 0
 				println("n = $nresults of $(MC.n) total shots")
 			end
 			if mod(nresults, conv_interv) == 0
 				push!(conv_n, nresults)
 				push!(conv_norm, norm(res/nresults))
-				println("convergence var_val")
-				display(scatterplot(conv_n,conv_norm))				
+				if verbose
+					println("convergence var_val")
+					display(scatterplot(conv_n,conv_norm))				
+				end
 			end
 			sleep(0.0001)		
 		end
@@ -364,7 +368,7 @@ function distributed_sampling_B(MC::MonteCarloSobol{DIM,MCT,RT}, exp_val::RT, fu
 	return take!(intres)
 end
 
-function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_ids::Vector{Int}) where {DIM,MCT,RT,F<:Function}
+function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_ids::Vector{Int}, verbose::Bool=false) where {DIM,MCT,RT,F<:Function}
 	wp = WorkerPool(worker_ids);
 	num_workers = length(worker_ids)
 	results = Channel{Tuple{RT,Int}}(num_workers+1)
@@ -399,19 +403,23 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 				else
 					restmp[resi] = res
 				end
-				if mod(nresults,1000) == 0
+				if verbose && mod(nresults,1000) == 0
 					println("n = $nresults of $(MC.n*DIM) total shots")
 				end
 				if mod(nresults_i[resi], conv_interv) == 0
 					push!(conv_n_i[resi], nresults_i[resi])
 					push!(conv_norm_i[resi], norm(restmp[resi])/nresults_i[resi])
-					println("convergence S_$resi")
-					display(scatterplot(conv_n_i[resi],conv_norm_i[resi]))
+					if verbose
+						println("convergence S_$resi")
+						display(scatterplot(conv_n_i[resi],conv_norm_i[resi]))
+					end
 					if length(conv_n_i[resi]) > 1
 						conv_act_i = length(conv_n_i[resi])						
 						push!(conv_rel_norm_i[resi], abs(conv_norm_i[resi][conv_act_i]-conv_norm_i[resi][conv_act_i-1])/conv_norm_i[resi][1])
-						println("convergence rel S_$resi")
-						display(scatterplot(conv_n_i[resi][2:end],conv_rel_norm_i[resi]))
+						if verbose
+							println("convergence rel S_$resi")
+							display(scatterplot(conv_n_i[resi][2:end],conv_rel_norm_i[resi]))
+						end
 					end	
 				end
 				sleep(0.0001)		
@@ -461,10 +469,10 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 	return take!(intres)
 end
 
-function distributed_Sobol_Vars(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_ids::Vector{Int}) where {DIM,MCT,RT,F<:Function}
-	expval = DistributedMonteCarlo.distributed_sampling_A(MC, fun, worker_ids)
-	varval = DistributedMonteCarlo.distributed_sampling_B(MC, expval, fun, worker_ids)
-	sobolvars = DistributedMonteCarlo.distributed_sampling_A_B(MC, fun, worker_ids)
+function distributed_Sobol_Vars(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_ids::Vector{Int}, verbose::Bool=false) where {DIM,MCT,RT,F<:Function}
+	expval = DistributedMonteCarlo.distributed_sampling_A(MC, fun, worker_ids, verbose)
+	varval = DistributedMonteCarlo.distributed_sampling_B(MC, expval, fun, worker_ids, verbose)
+	sobolvars = DistributedMonteCarlo.distributed_sampling_A_B(MC, fun, worker_ids, verbose)
 	return expval, varval, sobolvars
 end
 
