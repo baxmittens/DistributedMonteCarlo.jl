@@ -463,7 +463,7 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 					minus!(resA,copy_resA_B)
 					pow!(resA,2.0)
 
-					put!(results, (resA_B,res_A,num_i))
+					put!(results, (resA_B,resA,num_i))
 				end
 				sleep(0.0001)
 			end
