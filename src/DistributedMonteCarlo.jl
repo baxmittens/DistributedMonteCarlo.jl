@@ -215,7 +215,11 @@ function load!(MC::MonteCarloSobol{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
 	end
 	snapshotdirsB = readdir(joinpath(restartpath,"B"))
 	_permB = sortperm(map(x->parse(Int,x),snapshotdirsA))
-	for i = 1:length(snapshotdirsB)
+	m = length(snapshotdirsB)
+	if m > n
+		m = n
+	end
+	for i = 1:m
 		ind = _permB[i]
 		#snapshotdir = readdir(joinpath(restartpath,"B",snapshotdirsB[i]))
 		pars_txt = joinpath(restartpath,"B",snapshotdirsB[ind],"coords.txt")
