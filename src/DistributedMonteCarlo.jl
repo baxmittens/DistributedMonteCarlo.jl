@@ -194,10 +194,11 @@ function load!(MC::MonteCarloSobol{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
 	snapshotdirsA = readdir(joinpath(restartpath,"A"))
 	n = length(snapshotdirsA)
 	if n > MC.n
-		@warn "change size of n from $(MC.n) to $n"
-		MC.n = n
-		resize!(MC.shotsA,n)
-		resize!(MC.shotsB,n)
+		#@warn "change size of n from $(MC.n) to $n"
+		#MC.n = n
+		n = MC.n
+		#resize!(MC.shotsA,n)
+		#resize!(MC.shotsB,n)
 	end
 	_permA = sortperm(map(x->parse(Int,x),snapshotdirsA))
 	for i = 1:n
