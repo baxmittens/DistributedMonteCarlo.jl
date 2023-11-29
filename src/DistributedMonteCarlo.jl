@@ -461,14 +461,16 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 					resA_B = remotecall_fetch(fun, wp, valA_B, joinpath("A_B",ID))
 					resA = remotecall_fetch(fun, wp, valA, joinpath("A",string(num_j)))
 					resB = remotecall_fetch(fun, wp, valB, joinpath("B",string(num_j)))
+					
 					copy_resA_B = deepcopy(resA_B)
+					
 					minus!(resA_B,resA)
 					mul!(resA_B,resB)
 
-					minus!(resA,copy_resA_B)
-					pow!(resA,2.0)
+					#minus!(resA,copy_resA_B)
+					#pow!(resA,2.0)
 
-					put!(results, (resA_B,resA,num_i))
+					put!(results, (resA_B,copy_resA_B,num_i))
 				end
 				sleep(0.0001)
 			end
