@@ -433,6 +433,7 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 				sleep(0.0001)		
 			end
 			for resi = 1:DIM
+				println("divide $resi by $(nresults_i[resi])")
 				mul!(restmp[resi], 1.0/nresults_i[resi])
 				#mul!(restmp_totvar[resi], 1.0/(2*nresults_i[resi]))
 			end
@@ -452,6 +453,7 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 					#println("WorkerPool not ready")
 					sleep(0.1)
 				end
+
 				@async begin
 					valA_B = coords(shotA_B)					
 					valA = coords(MC.shotsA[num_j])					
