@@ -498,6 +498,128 @@ function distributed_Sobol_Vars(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 	return expval, varval, sobolvars, totsobolvars
 end
 
+mutable struct MorrisTrajectory{DIM,MT,RT}
+    point::SVector{DIM,MT}
+    traj::Vector{SVector{DIM,MT}}
+    Δ::MT
+end
+
+function MorrisTrajectory(::Type{Val{DIM}}, ::Type{MT}, ::Type{RT}, rndF::F) where {DIM, MT, RT, F<:Function}
+    point = SVector(rndF()...)
+    Δmax = minimum(1.0 .- point)
+    Δ = rand(MT)*Δmax
+    traj = Vector{SVector{DIM,MT}}()
+    for i = 1:DIM
+    	_ei = zeros(MT,DIM)
+        _ei[i] = traj.Δ
+        ei = SVector(_ei...)
+        Δx = point.+ei
+    	push!(traj, Δx)
+    end
+    return MorrisTrajectory{DIM,MT,RT}(point, traj, Δ)
+end
+
+mutable struct MonteCarloMorris{DIM,MT,RT}
+    trajectories::Vector{MorrisTrajectory{DIM,MT,RT}}
+    n_trajectories::Int
+    rndF::Function
+	convergence_history::Dict{String,Tuple{Vector{Float64},Vector{Float64}}}
+end
+
+function MonteCarloMorris(::Type{Val{DIM}}, ::Type{MT}, ::Type{RT}, n_trajectories, rndF::F) where {DIM, MT, RT, F<:Function}
+    trajectories = Vector{MorrisTrajectory{DIM,MT,RT}}(undef, n_trajectories)
+    conv_hist = Dict{String,Tuple{Vector{Float64},Vector{Float64}}}()
+    for i in 1:n_trajectories
+        trajectories[i] = MorrisTrajectory(Val{DIM}, MT, RT, rndF)
+    end
+    return MonteCarloMorris{DIM,MT,RT}(trajectories, n_trajectories, rndF, conv_hist)
+end
+
+#function load!(MC::MonteCarloMorris{DIM,MT,RT}, restartpath) where {DIM,MT,RT}
+#	snapshotdirs = readdir(restartpath)
+#	n = length(snapshotdirs)
+#	if n > MC.n_trajectories
+#		@warn "different snapshotssizes found"
+#	end
+#	for i = 1:min(n,MC.n_trajectories)
+#		snapshotdir = readdir(joinpath(restartpath,snapshotdirs[i]))
+#		pars_txt = joinpath(restartpath,snapshotdirs[i],"coords.txt")
+#		if isfile(pars_txt)
+#			f = open(pars_txt);
+#			lines = readlines(f)
+#			close(f)
+#			coords = SVector(map(x->parse(Float64,x),lines)...)
+#			@assert snapshotdirs[i]==string(hash(coords))
+#			MC.shots[i] = MonteCarloShot(coords)
+#		end
+#	end
+#	return nothing
+#end
+
+function distributed_means(MC::MonteCarloMorris{DIM,MT,RT}, fun::F, worker_ids::Vector{Int}) where {DIM,MT,RT,F<:Function}
+	
+	sumthreadlock = Threads.Condition()
+	wp = WorkerPool(worker_ids);
+	num_workers = length(worker_ids)
+	results = Channel{Vector{RT}}(num_workers+1)
+	intres = Channel{Vector{RT}}(1)
+	nresults = 0
+
+	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), floor(Int,MC.n/100)
+
+	@async begin
+		ees = take!(results)
+
+		nresults += 1
+		while nresults < MC.n_trajectories
+			ees_i = take!(results)
+			nresults += 1
+			for i in 1:DIM
+				add!(ees[i],ees_i[i])
+			end
+			#if mod(nresults,1000) == 0
+			#	println("n = $nresults")
+			#end
+			#if mod(nresults, conv_interv) == 0
+			#	push!(conv_n, nresults)
+			#	push!(conv_norm, norm(res/nresults))
+			#end
+			sleep(0.0001)		
+		end
+		#if conv_n ∉ nresults
+		#	push!(conv_n, nresults)
+		#	push!(conv_norm, norm(res/nresults))
+		#end
+		for i in 1:DIM
+			mul!(ees[i],1/nresults)
+		end
+		put!(intres, ees)
+	end
+
+	@sync begin
+		for (i,traj) in enumerate(MC.trajectories)
+			while !isready(wp) && length(results.data)<num_workers
+				println("WorkerPool not ready")
+				sleep(1)
+			end
+			@async begin
+				val = traj.point
+				println(val)
+				_fval = remotecall_fetch(fun, wp, val, string(i))
+				ees = [remotecall_fetch(fun, wp, traj.traj[j], string(i)*"_"*string(j)) for j in 1:length(traj.traj)]
+				for i = 1:DIM
+					minus!(ees[i],_fval)
+					mul!(ees[i],1/traj.Δ)
+				end
+				put!(results, ees)
+			end
+			sleep(0.0001)
+		end
+	end
+	MC.convergence_history["exp_val"] = (conv_n, conv_norm)
+	return take!(intres)
+end
+
 export MonteCarlo, MonteCarloShot, load!, distributed_𝔼, distributed_var, MonteCarloSobol
 
 end #module
