@@ -511,7 +511,7 @@ function MorrisTrajectory(::Type{Val{DIM}}, ::Type{MT}, ::Type{RT}, rndF::F) whe
     traj = Vector{SVector{DIM,MT}}()
     for i = 1:DIM
     	_ei = zeros(MT,DIM)
-        _ei[i] = traj.Δ
+        _ei[i] = Δ
         ei = SVector(_ei...)
         Δx = point.+ei
     	push!(traj, Δx)
