@@ -615,11 +615,10 @@ function distributed_means(MC::MonteCarloMorris{DIM,MT,RT}, fun::F, worker_ids::
 			end
 			sleep(0.0001)
 		end
-	end
-	MC.convergence_history["exp_val"] = (conv_n, conv_norm)
+	end	
 	return take!(intres)
 end
 
-export MonteCarlo, MonteCarloShot, load!, distributed_𝔼, distributed_var, MonteCarloSobol
+export MonteCarlo, MonteCarloShot, load!, distributed_𝔼, distributed_var, MonteCarloSobol, MonteCarloMorris
 
 end #module
