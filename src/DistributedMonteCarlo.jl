@@ -526,7 +526,7 @@ mutable struct MonteCarloMorris{DIM,MT,RT}
 	convergence_history::Dict{String,Tuple{Vector{Float64},Vector{Float64}}}
 end
 
-function MonteCarloMorris(::Type{Val{DIM}}, ::Type{MT}, ::Type{RT}, n_trajectories, rndF::F) where {DIM, MT, RT, F<:Function}
+function MonteCarloMorris(::Val{DIM}, ::Type{MT}, ::Type{RT}, n_trajectories, rndF::F) where {DIM, MT, RT, F<:Function}
     trajectories = Vector{MorrisTrajectory{DIM,MT,RT}}(undef, n_trajectories)
     conv_hist = Dict{String,Tuple{Vector{Float64},Vector{Float64}}}()
     for i in 1:n_trajectories
