@@ -565,7 +565,7 @@ function distributed_means(MC::MonteCarloMorris{DIM,MT,RT}, fun::F, worker_ids::
 	intres = Channel{Vector{RT}}(1)
 	nresults = 0
 
-	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), floor(Int,MC.n/100)
+	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), floor(Int,MC.n_trajectories/100)
 
 	@async begin
 		ees = take!(results)
