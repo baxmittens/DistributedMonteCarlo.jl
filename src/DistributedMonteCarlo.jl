@@ -540,9 +540,9 @@ function load!(MC::MonteCarloMorris{DIM,MT,RT}, restartpath) where {DIM,MT,RT}
 	traj_root_points_dirs = filter(x->!contains(x,"_"),snapshotdirs)
 	traj_sortperm = sortperm(map(x->parse(Int,x),traj_root_points_dirs))
 	traj_root_points_dirs_sorted = traj_root_points_dirs[traj_sortperm]
-	n = length(snapshotdirs)
+	n = length(traj_root_points_dirs_sorted)
 	for i = 1:min(n,MC.n_trajectories)
-		pars_txt = joinpath(restartpath,snapshotdirs[i],"coords.txt")
+		pars_txt = joinpath(restartpath,traj_root_points_dirs_sorted[i],"coords.txt")
 		Δ = 0.0
 		if isfile(pars_txt)
 			f = open(pars_txt);
@@ -552,7 +552,7 @@ function load!(MC::MonteCarloMorris{DIM,MT,RT}, restartpath) where {DIM,MT,RT}
 			MC.trajectories[i].point = coords
 		end
 		for j = 1:DIM
-			traj_dir_j = joinpath(restartpath,snapshotdirs[i]*"_"*"$j")
+			traj_dir_j = joinpath(restartpath,traj_root_points_dirs_sorted[i]*"_"*"$j")
 			pars_txt = joinpath(traj_dir_j,"coords.txt")
 			if isfile(pars_txt)
 				f = open(pars_txt);
