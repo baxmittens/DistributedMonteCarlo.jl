@@ -567,7 +567,7 @@ function load!(MC::MonteCarloMorris{DIM,MT,RT}, restartpath) where {DIM,MT,RT}
 			end
 		end
 		Δ = MC.trajectories[i].traj[1][1]-MC.trajectories[i].point[1]
-		MC.trajectories[1].Δ = Δ
+		MC.trajectories[i].Δ = Δ
 	end
 	return nothing
 end
