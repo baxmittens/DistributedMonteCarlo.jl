@@ -535,26 +535,40 @@ function MonteCarloMorris(::Val{DIM}, ::Type{MT}, ::Type{RT}, n_trajectories, rn
     return MonteCarloMorris{DIM,MT,RT}(trajectories, n_trajectories, rndF, conv_hist)
 end
 
-#function load!(MC::MonteCarloMorris{DIM,MT,RT}, restartpath) where {DIM,MT,RT}
-#	snapshotdirs = readdir(restartpath)
-#	n = length(snapshotdirs)
-#	if n > MC.n_trajectories
-#		@warn "different snapshotssizes found"
-#	end
-#	for i = 1:min(n,MC.n_trajectories)
-#		snapshotdir = readdir(joinpath(restartpath,snapshotdirs[i]))
-#		pars_txt = joinpath(restartpath,snapshotdirs[i],"coords.txt")
-#		if isfile(pars_txt)
-#			f = open(pars_txt);
-#			lines = readlines(f)
-#			close(f)
-#			coords = SVector(map(x->parse(Float64,x),lines)...)
-#			@assert snapshotdirs[i]==string(hash(coords))
-#			MC.shots[i] = MonteCarloShot(coords)
-#		end
-#	end
-#	return nothing
-#end
+function load!(MC::MonteCarloMorris{DIM,MT,RT}, restartpath) where {DIM,MT,RT}
+	snapshotdirs = readdir(restartpath)
+	traj_root_points_dirs = filter(x->!contains(x,"_"),snapshotdirs)
+	traj_sortperm = sortperm(map(x->parse(Int,x),traj_root_points_dirs))
+	traj_root_points_dirs_sorted = traj_root_points_dirs[traj_sortperm]
+	n = length(snapshotdirs)
+	for i = 1:min(n,MC.n_trajectories)
+		pars_txt = joinpath(restartpath,snapshotdirs[i],"coords.txt")
+		Δ = 0.0
+		if isfile(pars_txt)
+			f = open(pars_txt);
+			lines = readlines(f)
+			close(f)
+			coords = SVector(map(x->parse(Float64,x),lines)...)
+			MC.trajectories[i].point = coords
+		end
+		for j = 1:DIM
+			traj_dir_j = joinpath(restartpath,snapshotdirs[i]*"_"*"$j")
+			pars_txt = joinpath(traj_dir_j,"coords.txt")
+			if isfile(pars_txt)
+				f = open(pars_txt);
+				lines = readlines(f)
+				close(f)
+				coords = SVector(map(x->parse(Float64,x),lines)...)
+				MC.trajectories[i].traj[j] = coords
+			else
+				error("somethings wrong. reset stochastic model")
+			end
+		end
+		Δ = MC.trajectories[i].traj[1][1]-MC.trajectories[i].point[1]
+		MC.trajectories[1].Δ = Δ
+	end
+	return nothing
+end
 
 function distributed_means(MC::MonteCarloMorris{DIM,MT,RT}, fun::F, worker_ids::Vector{Int}) where {DIM,MT,RT,F<:Function}
 	
