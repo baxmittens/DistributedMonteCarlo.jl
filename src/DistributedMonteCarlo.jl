@@ -620,7 +620,7 @@ function distributed_means(MC::MonteCarloMorris{DIM,MT,RT}, fun::F, worker_ids::
 			end
 			@async begin
 				val = traj.point
-				println(val)
+				#println(val)
 				_fval = remotecall_fetch(fun, wp, val, string(i))
 				ees = [remotecall_fetch(fun, wp, traj.traj[j], string(i)*"_"*string(j)) for j in 1:length(traj.traj)]
 				for i = 1:DIM
