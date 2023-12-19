@@ -561,7 +561,9 @@ function load!(MC::MonteCarloMorris{DIM,MT,RT}, restartpath) where {DIM,MT,RT}
 				coords = SVector(map(x->parse(Float64,x),lines)...)
 				MC.trajectories[i].traj[j] = coords
 			else
-				error("somethings wrong. reset stochastic model")
+				println(traj_dir_j)
+				println(pars_txt)
+				error("somethings wrong. reset stochastic model )
 			end
 		end
 		Δ = MC.trajectories[i].traj[1][1]-MC.trajectories[i].point[1]
