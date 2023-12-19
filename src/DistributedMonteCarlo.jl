@@ -563,7 +563,7 @@ function load!(MC::MonteCarloMorris{DIM,MT,RT}, restartpath) where {DIM,MT,RT}
 			else
 				println(traj_dir_j)
 				println(pars_txt)
-				error("somethings wrong. reset stochastic model )
+				error("somethings wrong. reset stochastic model")
 			end
 		end
 		Δ = MC.trajectories[i].traj[1][1]-MC.trajectories[i].point[1]
