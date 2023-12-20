@@ -545,10 +545,10 @@ end
 function lhs_sampling!(mcm::MonteCarloMorris{DIM,MT,RT}) where {DIM, MT, RT}	
 	plan, _ = LHCoptim(mcm.n_trajectories,DIM,2*DIM)
 	scaled_plan = scaleLHC(plan,[(-one(MT),one(MT)) for i in 1:DIM])
-	for i in 1:n_trajectories
+	for i in 1:mcm.n_trajectories
 		point = scaled_plan[i,:]
-        trajectories[i] = MorrisTrajectory(Val{DIM}, MT, RT, point)
-    end⠀
+		mcm.trajectories[i] = MorrisTrajectory(Val{DIM}, MT, RT, point)
+    end
 	return nothing
 end
 
