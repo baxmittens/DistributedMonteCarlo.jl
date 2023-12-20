@@ -542,8 +542,7 @@ mutable struct MonteCarloMorris{DIM,MT,RT}
 	convergence_history::Dict{String,Tuple{Vector{Float64},Vector{Float64}}}
 end
 
-function lhs_sampling!(mcm::MonteCarloMorris{DIM,MT,RT}) where {DIM, MT, RT}
-	@assert mcm.lhs_sampling
+function lhs_sampling!(mcm::MonteCarloMorris{DIM,MT,RT}) where {DIM, MT, RT}	
 	plan, _ = LHCoptim(mcm.n_trajectories,DIM,2*DIM)
 	scaled_plan = scaleLHC(plan,[(-one(MT),one(MT)) for i in 1:DIM])
 	for i in 1:n_trajectories
