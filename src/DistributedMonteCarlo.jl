@@ -520,7 +520,7 @@ function MorrisTrajectory(::Type{Val{DIM}}, ::Type{MT}, ::Type{RT}, rndF::F) whe
     return MorrisTrajectory{DIM,MT,RT}(point, traj, Δ)
 end
 
-function MorrisTrajectory(::Type{Val{DIM}}, ::Type{MT}, ::Type{RT}, _point::AbstractVector{MT}) where {DIM, MT, RT, F<:Function}
+function MorrisTrajectory(::Type{Val{DIM}}, ::Type{MT}, ::Type{RT}, _point::AbstractVector{MT}) where {DIM, MT, RT}
     point = SVector{DIM}(_point...)
     Δmax = minimum(1.0 .- point)
     Δ = rand(MT)*Δmax
@@ -605,20 +605,29 @@ function distributed_means(MC::MonteCarloMorris{DIM,MT,RT}, fun::F, worker_ids::
 	wp = WorkerPool(worker_ids);
 	num_workers = length(worker_ids)
 	results = Channel{Vector{RT}}(num_workers+1)
-	intres = Channel{Vector{RT}}(1)
+	intres = Channel{Tuple{Vector{RT},Vector{RT}}}(1)
 	nresults = 0
 
 	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), floor(Int,MC.n_trajectories/100)
 
 	@async begin
 		ees = take!(results)
-
+		ees_abs = [deepcopy(ee) for ee in ees]
+		for i in 1:DIM
+			pow!(ees_abs[i],2.0)
+			pow!(ees_abs[i],0.5)
+		end
 		nresults += 1
 		while nresults < MC.n_trajectories
 			ees_i = take!(results)
 			nresults += 1
 			for i in 1:DIM
 				add!(ees[i],ees_i[i])
+			end
+			for i in 1:DIM
+				pow!(ees_i[i],2.0)
+				pow!(ees_i[i],0.5)
+				add!(ees_abs[i],ees_i[i])
 			end
 			#if mod(nresults,1000) == 0
 			#	println("n = $nresults")
@@ -635,8 +644,9 @@ function distributed_means(MC::MonteCarloMorris{DIM,MT,RT}, fun::F, worker_ids::
 		#end
 		for i in 1:DIM
 			mul!(ees[i],1/nresults)
+			mul!(ees_abs[i],1/nresults)
 		end
-		put!(intres, ees)
+		put!(intres, (ees,ees_abs))
 	end
 
 	@sync begin
