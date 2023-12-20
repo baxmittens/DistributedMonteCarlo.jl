@@ -558,7 +558,7 @@ function MonteCarloMorris(::Val{DIM}, ::Type{MT}, ::Type{RT}, n_trajectories, rn
     for i in 1:n_trajectories
         trajectories[i] = MorrisTrajectory(Val{DIM}, MT, RT, rndF)
     end
-    mcm = MonteCarloMorris{DIM,MT,RT}(trajectories, n_trajectories, lhs_sampling, rndF, conv_hist)
+    mcm = MonteCarloMorris{DIM,MT,RT}(trajectories, n_trajectories, rndF, conv_hist)
     return mcm
 end
 
