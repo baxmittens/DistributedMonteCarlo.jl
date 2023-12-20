@@ -5,6 +5,7 @@ using Distributed
 import AltInplaceOpsInterface: add!, minus!, pow!, max!, min!
 using LinearAlgebra
 using UnicodePlots
+using LatinHypercubeSampling
 
 struct MonteCarloShot{DIM,MCT}
 	coords::SVector{DIM,MCT}
@@ -519,11 +520,37 @@ function MorrisTrajectory(::Type{Val{DIM}}, ::Type{MT}, ::Type{RT}, rndF::F) whe
     return MorrisTrajectory{DIM,MT,RT}(point, traj, Δ)
 end
 
+function MorrisTrajectory(::Type{Val{DIM}}, ::Type{MT}, ::Type{RT}, _point::AbstractVector{MT}) where {DIM, MT, RT, F<:Function}
+    point = SVector{DIM}(_point...)
+    Δmax = minimum(1.0 .- point)
+    Δ = rand(MT)*Δmax
+    traj = Vector{SVector{DIM,MT}}()
+    for i = 1:DIM
+    	_ei = zeros(MT,DIM)
+        _ei[i] = Δ
+        ei = SVector(_ei...)
+        Δx = point.+ei
+    	push!(traj, Δx)
+    end
+    return MorrisTrajectory{DIM,MT,RT}(point, traj, Δ)
+end
+
 mutable struct MonteCarloMorris{DIM,MT,RT}
     trajectories::Vector{MorrisTrajectory{DIM,MT,RT}}
     n_trajectories::Int
     rndF::Function
 	convergence_history::Dict{String,Tuple{Vector{Float64},Vector{Float64}}}
+end
+
+function lhs_sampling!(mcm::MonteCarloMorris{DIM,MT,RT}) where {DIM, MT, RT}
+	@assert mcm.lhs_sampling
+	plan, _ = LHCoptim(mcm.n_trajectories,DIM,2*DIM)
+	scaled_plan = scaleLHC(plan,[(-one(MT),one(MT)) for i in 1:DIM])
+	for i in 1:n_trajectories
+		point = scaled_plan[i,:]
+        trajectories[i] = MorrisTrajectory(Val{DIM}, MT, RT, point)
+    end⠀
+	return nothing
 end
 
 function MonteCarloMorris(::Val{DIM}, ::Type{MT}, ::Type{RT}, n_trajectories, rndF::F) where {DIM, MT, RT, F<:Function}
@@ -532,7 +559,8 @@ function MonteCarloMorris(::Val{DIM}, ::Type{MT}, ::Type{RT}, n_trajectories, rn
     for i in 1:n_trajectories
         trajectories[i] = MorrisTrajectory(Val{DIM}, MT, RT, rndF)
     end
-    return MonteCarloMorris{DIM,MT,RT}(trajectories, n_trajectories, rndF, conv_hist)
+    mcm = MonteCarloMorris{DIM,MT,RT}(trajectories, n_trajectories, lhs_sampling, rndF, conv_hist)
+    return mcm
 end
 
 function load!(MC::MonteCarloMorris{DIM,MT,RT}, restartpath) where {DIM,MT,RT}
