@@ -643,14 +643,14 @@ function distributed_means(MC::MonteCarloMorris{DIM,MT,RT}, fun::F, worker_ids::
 				for resi in 1:DIM
 					push!(conv_n_i[resi], nresults)
 					push!(conv_norm_i[resi], norm(ees_abs[resi])/nresults)
-					if true
+					if false
 						println("convergence S_$resi")
 						display(scatterplot(conv_n_i[resi],conv_norm_i[resi]))
 					end
 					if length(conv_n_i[resi]) > 1
 						conv_act_i = length(conv_n_i[resi])						
 						push!(conv_rel_norm_i[resi], abs(conv_norm_i[resi][conv_act_i]-conv_norm_i[resi][conv_act_i-1])/conv_norm_i[resi][1])
-						if true
+						if false
 							println("convergence rel S_$resi")
 							display(scatterplot(conv_n_i[resi][2:end],conv_rel_norm_i[resi]))
 						end
