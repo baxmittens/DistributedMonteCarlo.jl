@@ -608,7 +608,7 @@ function distributed_means(MC::MonteCarloMorris{DIM,MT,RT}, fun::F, worker_ids::
 	intres = Channel{Tuple{Vector{RT},Vector{RT}}}(1)
 	nresults = 0
 
-	conv_n_i, conv_norm_i, conv_interv = Vector{Vector{Float64}}(undef,DIM), Vector{Vector{Float64}}(undef,DIM), max(length(worker_ids),floor(Int,MC.n/1000))
+	conv_n_i, conv_norm_i, conv_interv = Vector{Vector{Float64}}(undef,DIM), Vector{Vector{Float64}}(undef,DIM), max(length(worker_ids),floor(Int,MC.n_trajectories/1000))
 	conv_rel_norm_i = Vector{Vector{Float64}}(undef,DIM)
 	
 	for i in 1:DIM
