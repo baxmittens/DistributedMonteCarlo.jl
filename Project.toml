@@ -1,7 +1,7 @@
 name = "DistributedMonteCarlo"
 uuid = "1911db96-88a4-4c72-b932-f455b4e9470b"
 authors = ["Maximilian Bittens <maximilian.bittens@bgr.de>"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
@@ -16,3 +16,5 @@ LatinHypercubeSampling = "a5e1c1ea-c99a-51d3-a14d-a9a37257b02d"
 julia = "1"
 StaticArrays = "1"
 AltInplaceOpsInterface = "0.1"
+UnicodePlots = "3"
+LatinHypercubeSampling = "1"
