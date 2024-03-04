@@ -385,8 +385,6 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 	conv_n_i, conv_norm_i, conv_interv = Vector{Vector{Float64}}(undef,DIM), Vector{Vector{Float64}}(undef,DIM), max(length(worker_ids),floor(Int,MC.n/1000))
 	conv_rel_norm_i = Vector{Vector{Float64}}(undef,DIM)
 	
-
-	#conv_n_i, conv_norm_i, conv_interv = Vector{Vector{Float64}}(undef,DIM), Vector{Vector{Float64}}(undef,DIM), floor(Int,MC.n/1000)
 	for i in 1:DIM
 		conv_n_i[i] = Vector{Float64}()
 		conv_norm_i[i] = Vector{Float64}()
@@ -481,12 +479,14 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 		end
 	end
 
+	retval = take!(intres)
+
 	for i = 1:DIM
 		MC.convergence_history["S_$i"] = (conv_n_i[i], conv_norm_i[i])
 		MC.convergence_history["relS_$i"] = (conv_n_i[i][2:end], conv_rel_norm_i[i])
 	end
 
-	return take!(intres)
+	return retval
 end
 
 function distributed_Sobol_Vars(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_ids::Vector{Int}, verbose::Bool=false) where {DIM,MCT,RT,F<:Function}
@@ -608,7 +608,14 @@ function distributed_means(MC::MonteCarloMorris{DIM,MT,RT}, fun::F, worker_ids::
 	intres = Channel{Tuple{Vector{RT},Vector{RT}}}(1)
 	nresults = 0
 
-	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), floor(Int,MC.n_trajectories/100)
+	conv_n_i, conv_norm_i, conv_interv = Vector{Vector{Float64}}(undef,DIM), Vector{Vector{Float64}}(undef,DIM), max(length(worker_ids),floor(Int,MC.n/1000))
+	conv_rel_norm_i = Vector{Vector{Float64}}(undef,DIM)
+	
+	for i in 1:DIM
+		conv_n_i[i] = Vector{Float64}()
+		conv_norm_i[i] = Vector{Float64}()
+		conv_rel_norm_i[i] = Vector{Float64}()
+	end
 
 	@async begin
 		ees = take!(results)
@@ -632,10 +639,24 @@ function distributed_means(MC::MonteCarloMorris{DIM,MT,RT}, fun::F, worker_ids::
 			#if mod(nresults,1000) == 0
 			#	println("n = $nresults")
 			#end
-			#if mod(nresults, conv_interv) == 0
-			#	push!(conv_n, nresults)
-			#	push!(conv_norm, norm(res/nresults))
-			#end
+			if mod(nresults, conv_interv) == 0
+				for resi in 1:DIM
+					push!(conv_n_i[resi], nresults[resi])
+					push!(conv_norm_i[resi], norm(restmp[resi])/nresults[resi])
+					if true
+						println("convergence S_$resi")
+						display(scatterplot(conv_n_i[resi],conv_norm_i[resi]))
+					end
+					if length(conv_n_i[resi]) > 1
+						conv_act_i = length(conv_n_i[resi])						
+						push!(conv_rel_norm_i[resi], abs(conv_norm_i[resi][conv_act_i]-conv_norm_i[resi][conv_act_i-1])/conv_norm_i[resi][1])
+						if true
+							println("convergence rel S_$resi")
+							display(scatterplot(conv_n_i[resi][2:end],conv_rel_norm_i[resi]))
+						end
+					end
+				end	
+			end
 			sleep(0.0001)		
 		end
 		#if conv_n ∉ nresults
@@ -668,8 +689,16 @@ function distributed_means(MC::MonteCarloMorris{DIM,MT,RT}, fun::F, worker_ids::
 			end
 			sleep(0.0001)
 		end
-	end	
-	return take!(intres)
+	end
+
+	retval = take!(intres)
+
+	for i = 1:DIM
+		MC.convergence_history["S_$i"] = (conv_n_i[i], conv_norm_i[i])
+		MC.convergence_history["relS_$i"] = (conv_n_i[i][2:end], conv_rel_norm_i[i])
+	end
+
+	return retval
 end
 
 export MonteCarlo, MonteCarloShot, load!, distributed_𝔼, distributed_var, MonteCarloSobol, MonteCarloMorris
