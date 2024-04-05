@@ -7,9 +7,10 @@ using LinearAlgebra
 using UnicodePlots
 using LatinHypercubeSampling
 
-struct MonteCarloShot{DIM,MCT}
+struct MonteCarloShot{DIM,MCT,RT}
 	coords::SVector{DIM,MCT}
-	MonteCarloShot(coords::SVector{DIM,MCT}) where {DIM,MCT} = new{DIM,MCT}(coords)
+	res::Union{Nothing,RT}
+	MonteCarloShot(coords::SVector{DIM,MCT}) where {DIM,MCT} = new{DIM,MCT}(coords,nothing)
 end
 coords(mcs::MonteCarloShot) = mcs.coords
 
@@ -18,9 +19,10 @@ mutable struct MonteCarlo{DIM,MCT,RT}
 	n::Int
 	tol::Float64
 	rndF::Function
+	save_res::Bool
 	convergence_history::Dict{String,Tuple{Vector{Float64},Vector{Float64}}}
-	function MonteCarlo(::Val{DIM},::Type{MCT},::Type{RT}, n, tol, rndF::F2) where {DIM,MCT,RT,F2<:Function}
-		MC = new{DIM,MCT,RT}(Vector{MonteCarloShot{DIM,MCT}}(undef,n),n,tol,rndF,Dict{String,Tuple{Vector{Float64},Vector{Float64}}}())
+	function MonteCarlo(::Val{DIM},::Type{MCT},::Type{RT}, n, tol, rndF::F2, save_res::Bool=false) where {DIM,MCT,RT,F2<:Function}
+		MC = new{DIM,MCT,RT}(Vector{MonteCarloShot{DIM,MCT,RT}}(undef,n),n,tol,rndF,save_res,Dict{String,Tuple{Vector{Float64},Vector{Float64}}}())
 		for i = 1:MC.n
 			ξs = SVector(MC.rndF()...)
 			MC.shots[i] = MonteCarloShot(ξs)
@@ -94,9 +96,11 @@ function distributed_𝔼(MC::MonteCarlo{DIM,MCT,RT}, fun::F, worker_ids::Vector
 			end
 			@async begin
 				val = coords(shot)
-				println(val)
 				_fval = remotecall_fetch(fun, wp, val, string(hash(val)))
 				put!(results, _fval)
+				if MC.save_res
+					shot.res = _fval
+				end
 			end
 			sleep(0.0001)
 		end
