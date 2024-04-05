@@ -10,7 +10,7 @@ using LatinHypercubeSampling
 struct MonteCarloShot{DIM,MCT,RT}
 	coords::SVector{DIM,MCT}
 	res::Union{Nothing,RT}
-	MonteCarloShot(coords::SVector{DIM,MCT},::RT) where {DIM,MCT,RT} = new{DIM,MCT,RT}(coords,nothing)
+	MonteCarloShot(coords::SVector{DIM,MCT},::Type{RT}) where {DIM,MCT,RT} = new{DIM,MCT,RT}(coords,nothing)
 end
 coords(mcs::MonteCarloShot) = mcs.coords
 
