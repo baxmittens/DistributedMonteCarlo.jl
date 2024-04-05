@@ -7,7 +7,7 @@ using LinearAlgebra
 using UnicodePlots
 using LatinHypercubeSampling
 
-struct MonteCarloShot{DIM,MCT,RT}
+mutable struct MonteCarloShot{DIM,MCT,RT}
 	coords::SVector{DIM,MCT}
 	res::Union{Nothing,RT}
 	MonteCarloShot(coords::SVector{DIM,MCT},::Type{RT}) where {DIM,MCT,RT} = new{DIM,MCT,RT}(coords,nothing)
