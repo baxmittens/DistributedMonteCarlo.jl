@@ -15,7 +15,7 @@ end
 coords(mcs::MonteCarloShot) = mcs.coords
 
 mutable struct MonteCarlo{DIM,MCT,RT}
-	shots::Vector{MonteCarloShot{DIM,MCT}}
+	shots::Vector{MonteCarloShot{DIM,MCT,RT}}
 	n::Int
 	tol::Float64
 	rndF::Function
@@ -48,7 +48,7 @@ function load!(MC::MonteCarlo{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
 			close(f)
 			coords = SVector(map(x->parse(Float64,x),lines)...)
 			@assert snapshotdirs[i]==string(hash(coords))
-			MC.shots[i] = MonteCarloShot(coords)
+			MC.shots[i] = MonteCarloShot(coords,RT)
 		end
 	end
 	return nothing
@@ -163,23 +163,23 @@ function distributed_var(MC::MonteCarlo{DIM,MCT,RT}, fun::F, exp_val::RT, worker
 end
 
 mutable struct MonteCarloSobol{DIM,MCT,RT}
-	shotsA::Vector{MonteCarloShot{DIM,MCT}}
-	shotsB::Vector{MonteCarloShot{DIM,MCT}}
-	shotsA_B::Matrix{MonteCarloShot{DIM,MCT}}
+	shotsA::Vector{MonteCarloShot{DIM,MCT,RT}}
+	shotsB::Vector{MonteCarloShot{DIM,MCT,RT}}
+	shotsA_B::Matrix{MonteCarloShot{DIM,MCT,RT}}
 	n::Int
 	tol::Float64
 	rndF::Function
 	convergence_history::Dict{String,Tuple{Vector{Float64},Vector{Float64}}}
 	function MonteCarloSobol(::Val{DIM},::Type{MCT},::Type{RT}, n, tol, rndF::F2) where {DIM,MCT,RT,F2<:Function}
-		shotsA = Vector{MonteCarloShot{DIM,MCT}}(undef,n)
-		shotsB = Vector{MonteCarloShot{DIM,MCT}}(undef,n)
-		shotsA_B = Matrix{MonteCarloShot{DIM,MCT}}(undef,DIM,n)
+		shotsA = Vector{MonteCarloShot{DIM,MCT,RT}}(undef,n)
+		shotsB = Vector{MonteCarloShot{DIM,MCT,RT}}(undef,n)
+		shotsA_B = Matrix{MonteCarloShot{DIM,MCT,RT}}(undef,DIM,n)
 		MC = new{DIM,MCT,RT}(shotsA,shotsB,shotsA_B,n,tol,rndF,Dict{String,Tuple{Vector{Float64},Vector{Float64}}}())
 		for i = 1:MC.n
 			ξs = SVector(MC.rndF()...)
-			MC.shotsA[i] = MonteCarloShot(ξs)
+			MC.shotsA[i] = MonteCarloShot(ξs,RT)
 			ξs = SVector(MC.rndF()...)
-			MC.shotsB[i] = MonteCarloShot(ξs)
+			MC.shotsB[i] = MonteCarloShot(ξs,RT)
 		end
 		ξvec = zeros(MCT, DIM)
 		for i = 1:DIM
@@ -188,7 +188,7 @@ mutable struct MonteCarloSobol{DIM,MCT,RT}
 				ξvec[i] = MC.shotsB[j].coords[i]
 				ξvec[inds] = MC.shotsA[j].coords[inds]				
 				ξs = SVector(ξvec...)
-				MC.shotsA_B[i,j] = MonteCarloShot(ξs)
+				MC.shotsA_B[i,j] = MonteCarloShot(ξs,RT)
 			end
 		end
 		return MC
@@ -215,7 +215,7 @@ function load!(MC::MonteCarloSobol{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
 			lines = readlines(f)
 			close(f)
 			coords = SVector(map(x->parse(Float64,x),lines)...)
-			MC.shotsA[i] = MonteCarloShot(coords)
+			MC.shotsA[i] = MonteCarloShot(coords,RT)
 		end
 	end
 	snapshotdirsB = readdir(joinpath(restartpath,"B"))
@@ -233,10 +233,10 @@ function load!(MC::MonteCarloSobol{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
 			lines = readlines(f)
 			close(f)
 			coords = SVector(map(x->parse(Float64,x),lines)...)
-			MC.shotsB[i] = MonteCarloShot(coords)
+			MC.shotsB[i] = MonteCarloShot(coords,RT)
 		end
 	end
-	shotsA_B = Matrix{MonteCarloShot{DIM,MCT}}(undef,DIM,MC.n)
+	shotsA_B = Matrix{MonteCarloShot{DIM,MCT,RT}}(undef,DIM,MC.n)
 	ξvec = zeros(MCT, DIM)
 	for i = 1:DIM
 		inds =  setdiff(1:DIM,i)
@@ -244,7 +244,7 @@ function load!(MC::MonteCarloSobol{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
 			ξvec[i] = MC.shotsB[j].coords[i]
 			ξvec[inds] = MC.shotsA[j].coords[inds]				
 			ξs = SVector(ξvec...)
-			shotsA_B[i,j] = MonteCarloShot(ξs)
+			shotsA_B[i,j] = MonteCarloShot(ξs,RT)
 		end
 	end
 	MC.shotsA_B = shotsA_B
