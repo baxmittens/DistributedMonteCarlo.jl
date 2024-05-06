@@ -10,8 +10,7 @@ This code is rather slow. Its purpose is to be able to perform Monte Carlo analy
 
 ```julia
 import Pkg
-#Pkg.add("DistributedMonteCarlo") # not yet registered
-Pkg.add(url="https://github.com/baxmittens/DistributedMonteCarlo.jl.git")
+Pkg.add("DistributedMonteCarlo")
 ```
 
 ## Usage
