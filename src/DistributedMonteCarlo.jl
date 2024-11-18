@@ -122,15 +122,17 @@ function distributed_var(MC::MonteCarlo{DIM,MCT,RT}, fun::F, exp_val::RT, worker
 	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), floor(Int,MC.n/100)
 
 	@async begin
-		res = take!(results)
+		res = deepcopy(take!(results))
 		minus!(res,exp_val)
 		#res .^= 2.0
 		pow!(res, 2.0)
 		nresults += 1
 		while nresults < MC.n
-			_res = take!(results)
+			_res = deepcopy(take!(results))
+			minus!(_res,exp_val)
+			pow!(_res, 2.0)
 			nresults += 1
-			add!(res,(_res - exp_val)^2.0)
+			add!(res, _res)
 			if mod(nresults,1000) == 0
 				println("n = $nresults")
 			end
