@@ -33,6 +33,7 @@ end
 
 function load!(MC::MonteCarlo{DIM,MCT,RT}, restartpath) where {DIM,MCT,RT}
 	snapshotdirs = readdir(restartpath)
+	filter!(x->isdir(joinpath(restartpath,x)), snapshotdirs)
 	n = length(snapshotdirs)
 	if n > MC.n
 		@warn "change size of n from $(MC.n) to $n"
@@ -66,7 +67,7 @@ function distributed_𝔼(MC::MonteCarlo{DIM,MCT,RT}, fun::F, worker_ids::Vector
 	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), floor(Int,MC.n/100)
 
 	@async begin
-		res = take!(results)
+		res = deepcopy(take!(results))
 		nresults += 1
 		while nresults < MC.n
 			_res = take!(results)
@@ -123,7 +124,8 @@ function distributed_var(MC::MonteCarlo{DIM,MCT,RT}, fun::F, exp_val::RT, worker
 	@async begin
 		res = take!(results)
 		minus!(res,exp_val)
-		res .^= 2.0
+		#res .^= 2.0
+		pow!(res, 2.0)
 		nresults += 1
 		while nresults < MC.n
 			_res = take!(results)
