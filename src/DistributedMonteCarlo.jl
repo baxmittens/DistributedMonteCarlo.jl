@@ -67,26 +67,30 @@ function distributed_𝔼(MC::MonteCarlo{DIM,MCT,RT}, fun::F, worker_ids::Vector
 	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), floor(Int,MC.n/100)
 
 	@async begin
-		res = deepcopy(take!(results))
-		nresults += 1
-		while nresults < MC.n
-			_res = take!(results)
+		try
+			res = deepcopy(take!(results))
 			nresults += 1
-			add!(res,_res)
-			if mod(nresults,1000) == 0
-				println("n = $nresults")
+			while nresults < MC.n
+				_res = take!(results)
+				nresults += 1
+				add!(res,_res)
+				if mod(nresults,1000) == 0
+					println("n = $nresults")
+				end
+				if mod(nresults, conv_interv) == 0
+					push!(conv_n, nresults)
+					push!(conv_norm, norm(res/nresults))
+				end
+				sleep(0.0001)		
 			end
-			if mod(nresults, conv_interv) == 0
+			if conv_n ∉ nresults
 				push!(conv_n, nresults)
 				push!(conv_norm, norm(res/nresults))
 			end
-			sleep(0.0001)		
+			put!(intres, res/nresults)
+		catch e
+			println(e)
 		end
-		if conv_n ∉ nresults
-			push!(conv_n, nresults)
-			push!(conv_norm, norm(res/nresults))
-		end
-		put!(intres, res/nresults)
 	end
 
 	@sync begin
