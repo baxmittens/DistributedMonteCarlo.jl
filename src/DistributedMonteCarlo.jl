@@ -77,17 +77,19 @@ function distributed_𝔼(MC::MonteCarlo{DIM,MCT,RT}, fun::F, worker_ids::Vector
 				if mod(nresults,1000) == 0
 					println("n = $nresults")
 				end
-				if mod(nresults, conv_interv) == 0
-					push!(conv_n, nresults)
-					push!(conv_norm, norm(res/nresults))
-				end
+				#if mod(nresults, conv_interv) == 0
+					#push!(conv_n, nresults)
+					#push!(conv_norm, norm(res/nresults))
+				#end
 				sleep(0.0001)		
 			end
-			if conv_n ∉ nresults
-				push!(conv_n, nresults)
-				push!(conv_norm, norm(res/nresults))
-			end
-			put!(intres, res/nresults)
+			#if conv_n ∉ nresults
+				#push!(conv_n, nresults)
+				#push!(conv_norm, norm(res/nresults))
+			#end
+			rescopy = deepcopy(res)
+			mul!(rescopy, 1.0/nresults)
+			put!(intres, rescopy)
 		catch e
 			println(e)
 		end
@@ -137,18 +139,20 @@ function distributed_var(MC::MonteCarlo{DIM,MCT,RT}, fun::F, exp_val::RT, worker
 			pow!(_res, 2.0)
 			nresults += 1
 			add!(res, _res)
-			if mod(nresults,1000) == 0
-				println("n = $nresults")
-			end
-			if mod(nresults, conv_interv) == 0
-				push!(conv_n, nresults)
-				push!(conv_norm, norm(res/nresults))
-			end
+			#if mod(nresults,1000) == 0
+			#	println("n = $nresults")
+			#end
+			#if mod(nresults, conv_interv) == 0
+			#	push!(conv_n, nresults)
+			#	push!(conv_norm, norm(res/nresults))
+			#end
 			sleep(0.0001)		
 		end
-		push!(conv_n, nresults)
-		push!(conv_norm, norm(res/nresults))
-		put!(intres, res/(nresults-1))
+		#push!(conv_n, nresults)
+		#push!(conv_norm, norm(res/nresults))
+		rescopy = deepcopy(res)
+		mul!(rescopy, 1.0/(nresults-1))
+		put!(intres, rescopy)
 	end
 
 	@sync begin
