@@ -162,7 +162,7 @@ function distributed_var(MC::MonteCarlo{DIM,MCT,RT}, fun::F, exp_val::RT, worker
 			end
 			@async begin
 				val = coords(shot)
-				println(val)
+				#println(val)
 				_fval = remotecall_fetch(fun, wp, val, string(hash(val)))
 				put!(results, _fval)
 			end
