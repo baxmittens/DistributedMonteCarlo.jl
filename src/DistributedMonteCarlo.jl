@@ -283,20 +283,20 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 			if verbose && mod(nresults,1000) == 0
 				println("n = $nresults of $(MC.n) total shots")
 			end
-			if mod(nresults, conv_interv) == 0
-				push!(conv_n, nresults)
-				push!(conv_norm, norm(res/nresults))
-				if verbose
-					println("convergence exp_val")
-					display(scatterplot(conv_n,conv_norm))
-				end
-			end
+			#if mod(nresults, conv_interv) == 0
+			#	push!(conv_n, nresults)
+			#	push!(conv_norm, norm(res/nresults))
+			#	if verbose
+			#		println("convergence exp_val")
+			#		display(scatterplot(conv_n,conv_norm))
+			#	end
+			#end
 			sleep(0.0001)		
 		end
-		if conv_n ∉ nresults
-			push!(conv_n, nresults)
-			push!(conv_norm, norm(res/nresults))
-		end
+		#if conv_n ∉ nresults
+		#	push!(conv_n, nresults)
+		#	push!(conv_norm, norm(res/nresults))
+		#end
 		put!(intres, res/nresults)
 	end
 
@@ -351,23 +351,23 @@ function distributed_sampling_B(MC::MonteCarloSobol{DIM,MCT,RT}, exp_val::RT, fu
 			pow!(tmp,2.0)
 			add!(res,tmp)
 
-			if verbose && mod(nresults,1000) == 0
-				println("n = $nresults of $(MC.n) total shots")
-			end
-			if mod(nresults, conv_interv) == 0
-				push!(conv_n, nresults)
-				push!(conv_norm, norm(res/nresults))
-				if verbose
-					println("convergence var_val")
-					display(scatterplot(conv_n,conv_norm))				
-				end
-			end
+			#if verbose && mod(nresults,1000) == 0
+			#	println("n = $nresults of $(MC.n) total shots")
+			#end
+			#if mod(nresults, conv_interv) == 0
+			#	push!(conv_n, nresults)
+			#	push!(conv_norm, norm(res/nresults))
+			#	if verbose
+			#		println("convergence var_val")
+			#		display(scatterplot(conv_n,conv_norm))				
+			#	end
+			#end
 			sleep(0.0001)		
 		end
-		if conv_n ∉ nresults
-			push!(conv_n, nresults)
-			push!(conv_norm, norm(res/nresults))
-		end
+		#if conv_n ∉ nresults
+		#	push!(conv_n, nresults)
+		#	push!(conv_norm, norm(res/nresults))
+		#end
 		put!(intres, res/(nresults-1))
 	end
 
