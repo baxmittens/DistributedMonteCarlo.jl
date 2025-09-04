@@ -280,6 +280,7 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 			while nresults < MC.n
 				_res = take!(results)
 				nresults += 1
+				println("nresults = $nresults")
 				add!(res,_res)
 				#if verbose && mod(nresults,1000) == 0
 				#	println("n = $nresults of $(MC.n) total shots")
@@ -298,7 +299,9 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 			#	push!(conv_n, nresults)
 			#	push!(conv_norm, norm(res/nresults))
 			#end
+			println("put")
 			put!(intres, res/nresults)
+			println("done")
 		catch e
 			rethrow(e)
 		end
@@ -319,7 +322,7 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 			sleep(0.0001)
 		end
 	end
-	MC.convergence_history["exp_val"] = (conv_n, conv_norm)
+	#MC.convergence_history["exp_val"] = (conv_n, conv_norm)
 	return take!(intres)
 end
 
