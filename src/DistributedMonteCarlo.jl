@@ -274,30 +274,34 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), max(length(worker_ids),floor(Int,MC.n/1000))
 
 	@async begin
-		res = take!(results)
-		nresults += 1		
-		while nresults < MC.n
-			_res = take!(results)
-			nresults += 1
-			add!(res,_res)
-			if verbose && mod(nresults,1000) == 0
-				println("n = $nresults of $(MC.n) total shots")
+		try
+			res = deepcopy(take!(results))
+			nresults += 1		
+			while nresults < MC.n
+				_res = take!(results)
+				nresults += 1
+				add!(res,_res)
+				#if verbose && mod(nresults,1000) == 0
+				#	println("n = $nresults of $(MC.n) total shots")
+				#end
+				#if mod(nresults, conv_interv) == 0
+				#	push!(conv_n, nresults)
+				#	push!(conv_norm, norm(res/nresults))
+				#	if verbose
+				#		println("convergence exp_val")
+				#		display(scatterplot(conv_n,conv_norm))
+				#	end
+				#end
+				sleep(0.0001)		
 			end
-			#if mod(nresults, conv_interv) == 0
+			#if conv_n ∉ nresults
 			#	push!(conv_n, nresults)
 			#	push!(conv_norm, norm(res/nresults))
-			#	if verbose
-			#		println("convergence exp_val")
-			#		display(scatterplot(conv_n,conv_norm))
-			#	end
 			#end
-			sleep(0.0001)		
+			put!(intres, res/nresults)
+		catch e
+			rethrow(e)
 		end
-		#if conv_n ∉ nresults
-		#	push!(conv_n, nresults)
-		#	push!(conv_norm, norm(res/nresults))
-		#end
-		put!(intres, res/nresults)
 	end
 
 	@sync begin
