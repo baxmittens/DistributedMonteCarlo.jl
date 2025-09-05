@@ -282,6 +282,7 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 				nresults += 1
 				println("nresults = $nresults")
 				add!(res,_res)
+				println("added result")
 				#if verbose && mod(nresults,1000) == 0
 				#	println("n = $nresults of $(MC.n) total shots")
 				#end
