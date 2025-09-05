@@ -276,7 +276,6 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 	thread1 = @async begin
 		try
 			res = deepcopy(take!(results))
-			global nresults, intres
 			nresults += 1		
 			while nresults < MC.n
 				_res = take!(results)
