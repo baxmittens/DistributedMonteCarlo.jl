@@ -334,7 +334,7 @@ function distributed_sampling_B(MC::MonteCarloSobol{DIM,MCT,RT}, exp_val::RT, fu
 	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), max(length(worker_ids),floor(Int,MC.n/1000))
 
 	@async begin
-		res = take!(results)
+		res = deepcopy(take!(results))
 		tmp = similar(res)
 		
 		fill!(tmp,0.0)
