@@ -273,16 +273,15 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 	#conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), floor(Int,MC.n/1000)
 	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), max(length(worker_ids),floor(Int,MC.n/1000))
 
-	@async begin
+	thread1 = @async begin
 		try
 			res = deepcopy(take!(results))
+			global nresults, intres
 			nresults += 1		
 			while nresults < MC.n
 				_res = take!(results)
 				nresults += 1
-				println("nresults = $nresults")
 				add!(res,_res)
-				println("added result")
 				#if verbose && mod(nresults,1000) == 0
 				#	println("n = $nresults of $(MC.n) total shots")
 				#end
@@ -300,18 +299,16 @@ function distributed_sampling_A(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worker_
 			#	push!(conv_n, nresults)
 			#	push!(conv_norm, norm(res/nresults))
 			#end
-			println("put")
 			put!(intres, res/nresults)
-			println("done")
 		catch e
 			rethrow(e)
 		end
 	end
 
-	@sync begin
+	thread2 = @sync begin
 		for (numshot,shot) in enumerate(MC.shotsA)
 			while !isready(wp) && length(results.data)<num_workers
-				#println("WorkerPool not ready")
+				println("WorkerPool not ready")
 				sleep(0.1)
 			end
 			@async begin
