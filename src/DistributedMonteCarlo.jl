@@ -438,7 +438,7 @@ function distributed_sampling_A_B(MC::MonteCarloSobol{DIM,MCT,RT}, fun::F, worke
 				if verbose && mod(nresults,1000) == 0
 					println("n = $nresults of $(MC.n*DIM) total shots")
 				end
-				if mod(nresults_i[resi], conv_interv) == 0
+				if mod(nresults_i[resi], conv_interv) == 0 && false
 					push!(conv_n_i[resi], nresults_i[resi])
 					push!(conv_norm_i[resi], norm(restmp[resi])/nresults_i[resi])
 					if verbose
