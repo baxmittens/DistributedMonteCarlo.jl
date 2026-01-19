@@ -334,45 +334,49 @@ function distributed_sampling_B(MC::MonteCarloSobol{DIM,MCT,RT}, exp_val::RT, fu
 	conv_n, conv_norm, conv_interv = Vector{Float64}(), Vector{Float64}(), max(length(worker_ids),floor(Int,MC.n/1000))
 
 	@async begin
-		res = deepcopy(take!(results))
-		tmp = similar(res)
-		
-		fill!(tmp,0.0)
-		add!(tmp,res)
-		minus!(tmp,exp_val)
-		pow!(tmp,2.0)
-		fill!(res,0.0)
-		add!(res,tmp)
-
-		nresults += 1		
-		while nresults < MC.n
-			_res = take!(results)
-			nresults += 1
+		try
+			res = deepcopy(take!(results))
+			tmp = similar(res)
 			
 			fill!(tmp,0.0)
-			add!(tmp,_res)
+			add!(tmp,res)
 			minus!(tmp,exp_val)
 			pow!(tmp,2.0)
+			fill!(res,0.0)
 			add!(res,tmp)
-
-			#if verbose && mod(nresults,1000) == 0
-			#	println("n = $nresults of $(MC.n) total shots")
-			#end
-			#if mod(nresults, conv_interv) == 0
+	
+			nresults += 1		
+			while nresults < MC.n
+				_res = take!(results)
+				nresults += 1
+				
+				fill!(tmp,0.0)
+				add!(tmp,_res)
+				minus!(tmp,exp_val)
+				pow!(tmp,2.0)
+				add!(res,tmp)
+	
+				#if verbose && mod(nresults,1000) == 0
+				#	println("n = $nresults of $(MC.n) total shots")
+				#end
+				#if mod(nresults, conv_interv) == 0
+				#	push!(conv_n, nresults)
+				#	push!(conv_norm, norm(res/nresults))
+				#	if verbose
+				#		println("convergence var_val")
+				#		display(scatterplot(conv_n,conv_norm))				
+				#	end
+				#end
+				sleep(0.0001)		
+			end
+			#if conv_n ∉ nresults
 			#	push!(conv_n, nresults)
 			#	push!(conv_norm, norm(res/nresults))
-			#	if verbose
-			#		println("convergence var_val")
-			#		display(scatterplot(conv_n,conv_norm))				
-			#	end
 			#end
-			sleep(0.0001)		
+			put!(intres, res/(nresults-1))
+		catch e
+			rethrow(e)
 		end
-		#if conv_n ∉ nresults
-		#	push!(conv_n, nresults)
-		#	push!(conv_norm, norm(res/nresults))
-		#end
-		put!(intres, res/(nresults-1))
 	end
 
 	@sync begin
@@ -384,7 +388,8 @@ function distributed_sampling_B(MC::MonteCarloSobol{DIM,MCT,RT}, exp_val::RT, fu
 			@async begin
 				val = coords(shot)
 				#_fval = remotecall_fetch(fun, wp, val, string(hash(val)))
-				_fval = remotecall_fetch(fun, wp, val, joinpath("B",string(numshot)))
+				#_fval = remotecall_fetch(fun, wp, val, joinpath("B",string(numshot)))
+				_fval = remotecall_fetch(Base.invokelatest, wp, fun, val, joinpath("B", string(numshot)))
 				put!(results, _fval)
 			end
 			sleep(0.0001)
